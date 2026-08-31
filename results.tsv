@@ -1,0 +1,3 @@
+commit	oof_auc	status	description
+8592c53	0.987468	keep	baseline: full 15-member stack L2-blend
+exp1	0.987102	discard	add clipH378 features to L1 (correlated with clipH)

@@ -104,23 +104,36 @@ def fit_stack_predict(Mtr: np.ndarray, y: np.ndarray, Mte: np.ndarray, seed: int
     return {"lr2": p_lr, "et": p_et, "gb": p_gb}
 
 
-def optimize_rank_weights(M_oof: np.ndarray, y: np.ndarray, prior: Optional[np.ndarray] = None, n_iter: int = 15000, seed: int = 2026) -> Tuple[float, np.ndarray]:
-    """在 OOF 上搜索最优 rank 加权权重。"""
+def optimize_rank_weights(M_oof: np.ndarray, y: np.ndarray, prior: Optional[np.ndarray] = None, n_iter: int = 50000, seed: int = 2026) -> Tuple[float, np.ndarray]:
+    """在 OOF 上搜索最优 rank 加权权重（两阶段：粗采样 + 局部细化）。"""
     O = np.stack([rank01(M_oof[:, j]) for j in range(M_oof.shape[1])], axis=1)
     rng = np.random.default_rng(seed)
     if prior is None:
         prior = np.ones(M_oof.shape[1])
     best_auc, best_w = -1.0, None
+    # 阶段 1：粗采样
     for _ in range(n_iter):
         w = rng.dirichlet(prior)
         auc = roc_auc_score(y, O @ w)
         if auc > best_auc:
             best_auc, best_w = auc, w.copy()
+    # 阶段 2：在最优点附近细化
+    for scale in (0.1, 0.05, 0.02):
+        for _ in range(n_iter // 5):
+            w = best_w + rng.normal(0, scale, len(best_w))
+            w = np.clip(w, 0, None)
+            s = w.sum()
+            if s < 1e-12:
+                continue
+            w = w / s
+            auc = roc_auc_score(y, O @ w)
+            if auc > best_auc:
+                best_auc, best_w = auc, w.copy()
     return best_auc, best_w
 
 
 def blend_l2(stack_oof: Dict[str, np.ndarray], rank_pred: np.ndarray, y: np.ndarray) -> Tuple[float, np.ndarray]:
-    """在 L2 输出和 L1 rank 结果之间做网格搜索。"""
+    """在 L2 输出和 L1 rank 结果之间做网格搜索（粗网格防过拟合）。"""
     S = np.stack(
         [rank01(stack_oof["lr2"]), rank01(stack_oof["et"]), rank01(stack_oof["gb"]), rank01(rank_pred)],
         axis=1,
