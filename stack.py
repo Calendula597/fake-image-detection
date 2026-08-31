@@ -15,9 +15,11 @@ from fake_image_detection.paths import resolve_code_root, sample_csv, test_csv
 from fake_image_detection.stacking import (
     blend_l2,
     fit_predict_lr,
+    fit_predict_mlp,
     fit_stack_predict,
     nested_stack_oof,
     oof_lr,
+    oof_mlp,
     optimize_rank_weights,
     rank01,
 )
@@ -49,9 +51,9 @@ def build_members(lab_y, test_ids, lab_df=None):
             if pair[0] is None or pair[1] is None:
                 continue
             Xs, Xt = pair
-            oof = oof_lr(Xs, lab_y)
-            te = fit_predict_lr(Xs, lab_y, Xt)
-            print(f"[L1] CF {tag}_{crop} AUC={roc_auc_score(lab_y, oof):.4f}")
+            oof = oof_mlp(Xs, lab_y)
+            te = fit_predict_mlp(Xs, lab_y, Xt)
+            print(f"[L1] CF {tag}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
             members.append((f"cf_{tag}_{crop}", oof, te))
 
     # CLIP (clipH / clipBigG at 224 & 378)
@@ -65,9 +67,9 @@ def build_members(lab_y, test_ids, lab_df=None):
                 if pair[0] is None or pair[1] is None:
                     continue
                 Xs, Xt = pair
-                oof = oof_lr(Xs, lab_y)
-                te = fit_predict_lr(Xs, lab_y, Xt)
-                print(f"[L1] {tag}_{size}_{crop} AUC={roc_auc_score(lab_y, oof):.4f}")
+                oof = oof_mlp(Xs, lab_y)
+                te = fit_predict_mlp(Xs, lab_y, Xt)
+                print(f"[L1] {tag}_{size}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
                 members.append((f"{tag}_{size}_{crop}", oof, te))
 
     # CLIP-L (特殊命名)
@@ -80,9 +82,9 @@ def build_members(lab_y, test_ids, lab_df=None):
             continue
         Xs = np.load(sp).astype(np.float32)
         Xt = np.load(tp).astype(np.float32)
-        oof = oof_lr(Xs, lab_y)
-        te = fit_predict_lr(Xs, lab_y, Xt)
-        print(f"[L1] {tag} AUC={roc_auc_score(lab_y, oof):.4f}")
+        oof = oof_mlp(Xs, lab_y)
+        te = fit_predict_mlp(Xs, lab_y, Xt)
+        print(f"[L1] {tag} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
         members.append((tag, oof, te))
 
     # DRCT

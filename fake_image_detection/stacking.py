@@ -33,6 +33,62 @@ def fit_predict_lr(Xtr, y, Xte):
     return clf.predict_proba(Xte)[:, 1]
 
 
+def _train_mlp(Xtr, ytr, device, epochs=60, hidden=256, lr=1e-3, wd=1e-4, seed=42):
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    torch.manual_seed(seed)
+    head = nn.Sequential(
+        nn.Linear(Xtr.shape[1], hidden), nn.GELU(), nn.Dropout(0.1), nn.Linear(hidden, 1)
+    ).to(device)
+    opt = torch.optim.AdamW(head.parameters(), lr=lr, weight_decay=wd)
+    X = torch.from_numpy(Xtr).to(device)
+    y = torch.from_numpy(ytr.astype(np.float32)).to(device)
+    n = len(X)
+    head.train()
+    for _ in range(epochs):
+        idx = torch.randperm(n, device=device)
+        for s in range(0, n, 256):
+            b = idx[s:s + 256]
+            loss = F.binary_cross_entropy_with_logits(head(X[b]).squeeze(-1), y[b])
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+    head.eval()
+    return head
+
+
+def _predict_mlp(head, X, device):
+    import torch
+    out = []
+    with torch.no_grad():
+        for s in range(0, len(X), 4096):
+            xb = torch.from_numpy(X[s:s + 4096]).to(device)
+            out.append(torch.sigmoid(head(xb).squeeze(-1)).cpu().numpy())
+    return np.concatenate(out, 0)
+
+
+def oof_mlp(X: np.ndarray, y: np.ndarray, seed: int = 42) -> np.ndarray:
+    import torch
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    X = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-8)
+    skf = StratifiedKFold(5, shuffle=True, random_state=seed)
+    oof = np.zeros(len(y), dtype=np.float64)
+    for tr, va in skf.split(X, y):
+        head = _train_mlp(X[tr], y[tr], device, seed=seed)
+        oof[va] = _predict_mlp(head, X[va], device)
+    return oof
+
+
+def fit_predict_mlp(Xtr, y, Xte, seed: int = 42):
+    import torch
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    Xtr = Xtr / (np.linalg.norm(Xtr, axis=1, keepdims=True) + 1e-8)
+    Xte = Xte / (np.linalg.norm(Xte, axis=1, keepdims=True) + 1e-8)
+    head = _train_mlp(Xtr, y, device, seed=seed)
+    return _predict_mlp(head, Xte, device)
+
+
 def nested_stack_oof(M: np.ndarray, y: np.ndarray, seed: int = 2026) -> Dict[str, np.ndarray]:
     """Level-2 嵌套堆叠，返回 LR / ET / GB 的 OOF 预测。"""
     skf = StratifiedKFold(5, shuffle=True, random_state=seed)
