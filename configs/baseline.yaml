@@ -1,0 +1,54 @@
+experiment:
+  name: baseline_convnext_large
+  seed: 42
+hardware:
+  gpu_count: 1
+  device: cuda:0
+data:
+  image_size: 384
+  channels: 3
+  num_workers: 8
+  pin_memory: true
+  persistent_workers: true
+model:
+  name: convnext_large
+  pretrained: true
+  num_classes: 1
+  drop_path: 0.2
+  head_dropout: 0.1
+  gradient_checkpointing: false
+training:
+  precision: bf16
+  micro_batch_size: 16
+  gradient_accumulation_steps: 1
+  effective_batch_size: 16
+  epochs: 12
+  optimizer: adamw
+  backbone_lr: 3.0e-5
+  head_lr: 5.0e-4
+  weight_decay: 0.05
+  no_decay_bn_bias: true
+  layer_decay: 0.9
+  warmup_ratio: 0.05
+  min_lr: 1.0e-6
+  gradient_clip: 1.0
+  ema: true
+  ema_decay: 0.999
+  label_smoothing: 0.0
+  pos_weight: auto
+  log_every: 25
+aug:
+  hflip: true
+  random_crop_scale: [0.8, 1.0]
+  color_jitter: 0.0
+  jpeg_prob: 0.3
+  jpeg_quality: [50, 95]
+  resize_prob: 0.3
+  blur_prob: 0.0
+  normalize_mean: [0.485, 0.456, 0.406]
+  normalize_std: [0.229, 0.224, 0.225]
+folds:
+  n_splits: 5
+inference:
+  tta:
+    hflip: true

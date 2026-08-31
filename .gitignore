@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Outputs and large files
+outputs/
+weights/
+artifacts/
+*.npy
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary
+tmp/
+temp/
+*.tmp
