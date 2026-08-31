@@ -56,10 +56,10 @@ def build_members(lab_y, test_ids, lab_df=None):
             print(f"[L1] CF {tag}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
             members.append((f"cf_{tag}_{crop}", oof, te))
 
-    # CLIP (clipH / clipBigG at 224 & 378)
+    # CLIP (clipH / clipBigG / clipH378)
     for size in (224, 378):
         for crop in ("crop", "resize"):
-            for tag in ("clipH", "clipBigG"):
+            for tag in ("clipH", "clipBigG", "clipH378"):
                 pair = (
                     load_features(FEAT, tag, size, crop, "sample"),
                     load_features(FEAT, tag, size, crop, "test"),
