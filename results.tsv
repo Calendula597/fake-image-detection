@@ -2,3 +2,4 @@ commit	oof_auc	status	description
 8592c53	0.987468	keep	baseline: full 15-member stack L2-blend
 exp1	0.987102	discard	add clipH378 features to L1 (correlated with clipH)
 exp2	0.987372	keep	two-stage L1 optimizer (L1-rank +0.0013, L2 within noise)
+exp3	0.989256	keep	MLP head for CF/CLIP features (L1-rank 0.990308, L2-blend +0.0019)

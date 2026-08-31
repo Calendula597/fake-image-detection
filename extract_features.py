@@ -18,6 +18,12 @@ CR = resolve_code_root()
 FEAT_DIR = CR / "outputs" / "features"
 
 
+def _splits(test_only):
+    if test_only:
+        return [("test", pd.read_csv(test_csv()), "data/image_test")]
+    return [("sample", pd.read_csv(sample_csv()), "data/image_sample_data"), ("test", pd.read_csv(test_csv()), "data/image_test")]
+
+
 def extract_commfor(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     repo = CR / args.repo
@@ -26,10 +32,7 @@ def extract_commfor(args):
     tag = args.tag or Path(args.repo).name.replace("commfor-model-", "cf")
     is_crop = not args.no_crop
 
-    lab = pd.read_csv(sample_csv())
-    test = pd.read_csv(test_csv())
-
-    for split, df, rel in [("sample", lab, "data/image_sample_data"), ("test", test, "data/image_test")]:
+    for split, df, rel in _splits(args.test_only):
         feats, logits = extract_cf_features(
             model, df["id"].tolist(), rel, size, is_crop, device, batch_size=args.batch_size
         )
@@ -48,11 +51,8 @@ def extract_clip(args):
             ckpt = str(ckpt_path)
     model = load_openclip(args.arch, ckpt, device, pretrained=args.pretrained_tag)
 
-    lab = pd.read_csv(sample_csv())
-    test = pd.read_csv(test_csv())
-
     for mode in ("crop", "resize"):
-        for split, df, rel in [("sample", lab, "data/image_sample_data"), ("test", test, "data/image_test")]:
+        for split, df, rel in _splits(args.test_only):
             feats = extract_clip_features(
                 model, df["id"].tolist(), rel, args.size, mode, device, batch_size=args.batch_size
             )
@@ -70,6 +70,7 @@ def main():
     p_cf.add_argument("--size", type=int, default=0)
     p_cf.add_argument("--no-crop", action="store_true")
     p_cf.add_argument("--batch-size", type=int, default=64)
+    p_cf.add_argument("--test-only", action="store_true")
 
     p_clip = sub.add_parser("clip")
     p_clip.add_argument("--arch", default="ViT-H-14")
@@ -79,6 +80,7 @@ def main():
     p_clip.add_argument("--size", type=int, default=224)
     p_clip.add_argument("--batch-size", type=int, default=48)
     p_clip.add_argument("--pretrained-tag", default="dfn5b")
+    p_clip.add_argument("--test-only", action="store_true")
 
     args = ap.parse_args()
     if args.cmd == "commfor":

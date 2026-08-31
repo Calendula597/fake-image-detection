@@ -107,7 +107,7 @@ def build_members(lab_y, test_ids, lab_df=None):
         members.append((f"drct_{tag}_{crop}", oof, te))
 
     # Metadata 指纹特征
-    meta_path = CR / "artifacts" / "metadata_fingerprints.csv"
+    meta_path = CR / "artifacts" / "metadata_fingerprints_sem.csv"
     if meta_path.exists():
         from sklearn.ensemble import ExtraTreesClassifier
         from sklearn.model_selection import StratifiedKFold as SKF
@@ -222,7 +222,7 @@ def blend_recipes(stack_base, csv_test):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--submit", action="store_true", default=True)
-    ap.add_argument("--override-csv", default="artifacts/label_override_tiered_simple.csv")
+    ap.add_argument("--override-csv", default="artifacts/label_override_sem.csv")
     args = ap.parse_args()
 
     lab = pd.read_csv(sample_csv())

@@ -19,11 +19,14 @@ CLIP_STD = (0.26862954, 0.26130258, 0.27577711)
 
 
 class ImageDataset(Dataset):
+    """同时兼容 albumentations（image= 关键字，返回 dict）和 torchvision（位置参数，返回 tensor）。"""
+
     def __init__(self, ids, rel_root: str, transform: Callable):
         self.ids = list(ids)
         self.rel_root = rel_root
         self.transform = transform
         self.data_root = resolve_data_root()
+        self._is_albu = isinstance(transform, A.Compose)
 
     def __len__(self):
         return len(self.ids)
@@ -31,11 +34,15 @@ class ImageDataset(Dataset):
     def __getitem__(self, i):
         sid = self.ids[i]
         try:
-            img = np.array(Image.open(self.data_root / self.rel_root / sid).convert("RGB"))
+            pil = Image.open(self.data_root / self.rel_root / sid).convert("RGB")
         except Exception:
-            img = np.zeros((384, 384, 3), dtype=np.uint8)
-        out = self.transform(image=img)
-        return out["image"], sid
+            pil = Image.new("RGB", (384, 384))
+        if self._is_albu:
+            img = np.array(pil)
+            out = self.transform(image=img)["image"]
+        else:
+            out = self.transform(pil)
+        return out, sid
 
 
 def build_cf_transform(size: int = 384, is_crop: bool = True):
