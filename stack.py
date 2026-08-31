@@ -290,6 +290,7 @@ def main():
 
     # Submit
     if args.submit:
+        ov = args.override_csv
         for name in ("stack_prior378", "stack_clean984", "stack_push", "stack_bigg", "stack_clipH", "stack_ft_st"):
             if name not in candidates:
                 continue
@@ -301,6 +302,8 @@ def main():
                 "--out",
                 f"outputs/submissions/alt_{name}_submission.csv",
             ]
+            if ov and (CR / ov).exists():
+                cmd += ["--override-csv", ov]
             subprocess.run(cmd, cwd=str(CR), check=True)
 
 
