@@ -35,7 +35,7 @@ def load_csv(path: Path):
     return d.set_index("id")["score"]
 
 
-def build_members(lab_y, test_ids):
+def build_members(lab_y, test_ids, lab_df=None):
     """从 features/ 构建 Level-1 成员。"""
     members = []
 
@@ -54,10 +54,10 @@ def build_members(lab_y, test_ids):
             print(f"[L1] CF {tag}_{crop} AUC={roc_auc_score(lab_y, oof):.4f}")
             members.append((f"cf_{tag}_{crop}", oof, te))
 
-    # CLIP
+    # CLIP (clipH / clipBigG at 224 & 378)
     for size in (224, 378):
         for crop in ("crop", "resize"):
-            for tag in ("clipH", "clipBigG", "clipL"):
+            for tag in ("clipH", "clipBigG"):
                 pair = (
                     load_features(FEAT, tag, size, crop, "sample"),
                     load_features(FEAT, tag, size, crop, "test"),
@@ -69,6 +69,21 @@ def build_members(lab_y, test_ids):
                 te = fit_predict_lr(Xs, lab_y, Xt)
                 print(f"[L1] {tag}_{size}_{crop} AUC={roc_auc_score(lab_y, oof):.4f}")
                 members.append((f"{tag}_{size}_{crop}", oof, te))
+
+    # CLIP-L (特殊命名)
+    for sname, tname, tag in [
+        ("clip_vitl14_sample.npy", "clip_vitl14_test.npy", "clipL224"),
+        ("clipL_336_336_sample.npy", "clipL_336_336_test.npy", "clipL336"),
+    ]:
+        sp, tp = FEAT / sname, FEAT / tname
+        if not sp.exists() or not tp.exists():
+            continue
+        Xs = np.load(sp).astype(np.float32)
+        Xt = np.load(tp).astype(np.float32)
+        oof = oof_lr(Xs, lab_y)
+        te = fit_predict_lr(Xs, lab_y, Xt)
+        print(f"[L1] {tag} AUC={roc_auc_score(lab_y, oof):.4f}")
+        members.append((tag, oof, te))
 
     # DRCT
     for tag, crop in [
@@ -88,6 +103,35 @@ def build_members(lab_y, test_ids):
         te = fit_predict_lr(Xs, lab_y, Xt)
         print(f"[L1] drct_{tag}_{crop} AUC={roc_auc_score(lab_y, oof):.4f}")
         members.append((f"drct_{tag}_{crop}", oof, te))
+
+    # Metadata 指纹特征
+    meta_path = CR / "artifacts" / "metadata_fingerprints.csv"
+    if meta_path.exists():
+        from sklearn.ensemble import ExtraTreesClassifier
+        from sklearn.model_selection import StratifiedKFold as SKF
+        meta = pd.read_csv(meta_path)
+        cols = [c for c in meta.columns if c not in {"id", "split"}]
+        train_m = meta[meta["split"] == "train"].merge(lab_df, on="id")
+        test_m = meta[meta["split"] == "test"]
+        Xm = train_m[cols].replace([np.inf, -np.inf], np.nan).fillna(-1).to_numpy()
+        Tm = test_m[cols].replace([np.inf, -np.inf], np.nan).fillna(-1).to_numpy()
+        skf = SKF(5, shuffle=True, random_state=42)
+        oof = np.zeros(len(lab_y), dtype=np.float64)
+        for tr, va in skf.split(Xm, lab_y):
+            clf = ExtraTreesClassifier(
+                n_estimators=500, min_samples_leaf=2, max_features=0.8,
+                class_weight="balanced", n_jobs=-1, random_state=2026,
+            )
+            clf.fit(Xm[tr], lab_y[tr])
+            oof[va] = clf.predict_proba(Xm[va])[:, 1]
+        clf = ExtraTreesClassifier(
+            n_estimators=1000, min_samples_leaf=2, max_features=0.8,
+            class_weight="balanced", n_jobs=-1, random_state=2026,
+        )
+        clf.fit(Xm, lab_y)
+        te = clf.predict_proba(Tm)[:, 1]
+        print(f"[L1] meta AUC={roc_auc_score(lab_y, oof):.4f}")
+        members.append(("meta", oof, te))
 
     return members
 
@@ -183,7 +227,7 @@ def main():
     y = lab["label"].astype(int).to_numpy()
     test_ids = pd.read_csv(test_csv())["id"].tolist()
 
-    members = build_members(y, test_ids)
+    members = build_members(y, test_ids, lab_df=lab)
     if not members:
         print("no features found; run extract_features.py first")
         return
