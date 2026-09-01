@@ -24,3 +24,4 @@ exp16	0.992084	oof	27-member stack (+Qwen) - best OOF yet
 qwen_prompt	0.8027	oof	Qwen prompt variants - expert slightly>basic, forensic worse; marginal
 exp17	0.991940	oof	L1-rank simple stacking (vs L2-blend 0.992084)
 qwen_prompt_ens	0.7776	oof	prompt ensemble < best single prompt; prompt tuning is a dead end
+fft_spectral	0.5984	oof	pure FFT spectral features - weak, another dead end
