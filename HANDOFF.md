@@ -30,8 +30,9 @@
 
 ## 当前最好提交文件（明天用）
 
-`outputs/submissions/stack_base27_sem.csv` — **27 成员堆叠（OOF 0.992084，目前最高）**，含 Qwen VLM。未提交过。
-备选：`outputs/submissions/stack_base26_sem.csv`（26 成员）、`stack_base21_sem.csv`（LB 实测 0.902824）。
+- **首选 `outputs/submissions/stack_base27_sem.csv`** — 27 成员 L2-blend 堆叠（OOF 0.992084，目前最高），含 Qwen VLM。未提交过。
+- **对照 `outputs/submissions/stack_l1rank_sem.csv`** — 同 27 成员但用 L1-rank 简单平均（OOF 0.991940，无 L2 元学习器）。用于对比"简单堆叠是否对抗集泛化更好"。
+- 备选：`stack_base26_sem.csv`（26 成员）、`stack_base21_sem.csv`（LB 实测 0.902824）。
 
 ## 已证伪/确认的方向（重要教训，别再重复）
 
