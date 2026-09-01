@@ -77,6 +77,21 @@ class ImgDS(Dataset):
         return x, float(self.labels[i]), sid
 
 
+class TimmDetector(nn.Module):
+    """timm 骨干 + 二分类头，输出单个 logit。"""
+
+    def __init__(self, name, num_classes=1, head_dropout=0.1):
+        super().__init__()
+        import timm
+        self.backbone = timm.create_model(name, pretrained=True, num_classes=0)
+        feat_dim = self.backbone.num_features
+        self.head = nn.Sequential(nn.LayerNorm(feat_dim), nn.Dropout(head_dropout), nn.Linear(feat_dim, num_classes))
+
+    def forward(self, x):
+        feat = self.backbone(x)
+        return self.head(feat).reshape(-1)
+
+
 def load_backbone(name, device):
     """返回 (model, size)。model 输出单个 logit。"""
     if name == "cf384":
@@ -89,6 +104,10 @@ def load_backbone(name, device):
         for p in model.parameters():
             p.requires_grad = True
         return model, size
+    if name == "dinoL":
+        return TimmDetector("vit_large_patch16_dinov3").to(device), 224
+    if name == "dinoB":
+        return TimmDetector("vit_base_patch16_dinov3").to(device), 224
     raise ValueError(f"unknown backbone {name}")
 
 
