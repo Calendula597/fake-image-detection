@@ -20,3 +20,5 @@ fsd	0.777	oof	FSD descriptor (real-only GMM) - moderate, weaker than CF/CLIP
 aide	0.652	oof	AIDE features - weak on this adversarial dataset
 qwen_zs	0.808	oof	Qwen3.5-0.8B zero-shot VLM subset AUC (new mechanism)
 qwen_zs_full	0.7632	oof	Qwen zero-shot full-sample AUC, 0.17s/img
+exp16	0.992084	oof	27-member stack (+Qwen) - best OOF yet
+qwen_prompt	0.8027	oof	Qwen prompt variants - expert slightly>basic, forensic worse; marginal
