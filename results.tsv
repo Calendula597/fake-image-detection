@@ -15,3 +15,6 @@ lb_21member	0.902824	lb	stack_base21 (CO-SPY) - plateaued
 ft_ens2_lb	0.846965	lb	2-model finetune ensemble - WORSE than frozen, finetune direction disproven
 exp11	0.9393	oof	dinov3-H+ (largest) - marginal, < clipH378
 exp12	0.991066	oof	24-member stack (dinoH+npr)
+exp13	0.581	oof	WePe probe - weak, perturbation-consistency family ineffective
+fsd	0.777	oof	FSD descriptor (real-only GMM) - moderate, weaker than CF/CLIP
+aide	0.652	oof	AIDE features - weak on this adversarial dataset
