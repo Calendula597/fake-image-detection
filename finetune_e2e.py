@@ -28,7 +28,11 @@ IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
 
-def build_train_tf(size):
+CLIP_MEAN = (0.48145466, 0.4578275, 0.40821073)
+CLIP_STD = (0.26862954, 0.26130258, 0.27577711)
+
+
+def build_train_tf(size, mean=IMAGENET_MEAN, std=IMAGENET_STD):
     resize = 440 if size == 384 else 256
     return A.Compose([
         A.SmallestMaxSize(max_size=resize),
@@ -40,17 +44,17 @@ def build_train_tf(size):
             A.GaussianBlur(blur_limit=(3, 5), p=1.0),
         ], p=0.5),
         A.ColorJitter(0.1, 0.1, 0.1, 0.05, p=0.3),
-        A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        A.Normalize(mean=mean, std=std),
         ToTensorV2(),
     ])
 
 
-def build_eval_tf(size):
+def build_eval_tf(size, mean=IMAGENET_MEAN, std=IMAGENET_STD):
     resize = 440 if size == 384 else 256
     return A.Compose([
         A.Resize(resize, resize),
         A.CenterCrop(size, size),
-        A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
+        A.Normalize(mean=mean, std=std),
         ToTensorV2(),
     ])
 
@@ -89,25 +93,47 @@ class TimmDetector(nn.Module):
 
     def forward(self, x):
         feat = self.backbone(x)
+
+
+class CLIPDetector(nn.Module):
+    """open_clip 骨干 + 二分类头，输出单个 logit。"""
+
+    def __init__(self, arch, ckpt=None, num_classes=1, head_dropout=0.1):
+        super().__init__()
+        import sys
+        sys.path.insert(0, str(CR))
+        from fake_image_detection.clip_model import load_openclip
+        self.backbone = load_openclip(arch, ckpt, torch.device("cpu"))
+        feat_dim = self.backbone.visual.output_dim if hasattr(self.backbone, "visual") else 1024
+        self.head = nn.Sequential(nn.LayerNorm(feat_dim), nn.Dropout(head_dropout), nn.Linear(feat_dim, num_classes))
+
+    def forward(self, x):
+        feat = self.backbone.encode_image(x)
         return self.head(feat).reshape(-1)
 
 
 def load_backbone(name, device):
-    """返回 (model, size)。model 输出单个 logit。"""
+    """返回 (model, size, mean, std)。model 输出单个 logit。"""
     if name == "cf384":
         model, size = load_commfor("weights/commfor/commfor-model-384", device)
         for p in model.parameters():
             p.requires_grad = True
-        return model, size
+        return model, size, IMAGENET_MEAN, IMAGENET_STD
     if name == "cf224":
         model, size = load_commfor("weights/commfor/commfor-model-224", device)
         for p in model.parameters():
             p.requires_grad = True
-        return model, size
+        return model, size, IMAGENET_MEAN, IMAGENET_STD
     if name == "dinoL":
-        return TimmDetector("vit_large_patch16_dinov3").to(device), 224
+        return TimmDetector("vit_large_patch16_dinov3").to(device), 224, IMAGENET_MEAN, IMAGENET_STD
     if name == "dinoB":
-        return TimmDetector("vit_base_patch16_dinov3").to(device), 224
+        return TimmDetector("vit_base_patch16_dinov3").to(device), 224, IMAGENET_MEAN, IMAGENET_STD
+    if name == "clipH":
+        ckpt = CR / "weights" / "clip-vit-h-14" / "open_clip_pytorch_model.bin"
+        return CLIPDetector("ViT-H-14", str(ckpt)).to(device), 224, CLIP_MEAN, CLIP_STD
+    if name == "clipBigG":
+        ckpt = CR / "weights" / "clip-vit-bigg-14" / "open_clip_pytorch_model.bin"
+        return CLIPDetector("ViT-bigG-14", str(ckpt)).to(device), 224, CLIP_MEAN, CLIP_STD
     raise ValueError(f"unknown backbone {name}")
 
 
@@ -204,11 +230,11 @@ def main():
         y_va = y_all[va_idx]
         print(f"=== fold {fi}: train={len(ids_tr)} val={len(ids_va)} ===")
 
-        model, size = load_backbone(args.backbone, device)
+        model, size, mean, std = load_backbone(args.backbone, device)
         opt = make_optimizer(model, args.lr_backbone, args.lr_head, args.optimizer)
         scaler = torch.cuda.amp.GradScaler()
-        tf_tr = build_train_tf(size)
-        tf_ev = build_eval_tf(size)
+        tf_tr = build_train_tf(size, mean, std)
+        tf_ev = build_eval_tf(size, mean, std)
         dl_tr = DataLoader(ImgDS(ids_tr, y_tr, "data/image_sample_data", tf_tr),
                            batch_size=args.batch_size, shuffle=True, num_workers=6, pin_memory=True, drop_last=True)
 
