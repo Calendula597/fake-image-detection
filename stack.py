@@ -72,8 +72,8 @@ def build_members(lab_y, test_ids, lab_df=None):
                 print(f"[L1] {tag}_{size}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
                 members.append((f"{tag}_{size}_{crop}", oof, te))
 
-    # DINOv3 (dinoL / dinoB)
-    for tag in ("dinoL", "dinoB"):
+    # DINOv3 (dinoL / dinoB / dinoH)
+    for tag in ("dinoL", "dinoB", "dinoH"):
         for crop in ("crop", "resize"):
             pair = (
                 load_features(FEAT, tag, 224, crop, "sample"),
