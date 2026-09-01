@@ -135,6 +135,14 @@ def build_members(lab_y, test_ids, lab_df=None):
         print(f"[L1] {tag} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
         members.append((tag, oof, te))
 
+    # Qwen VLM 零样本分数（语义推理机制，1 维标量，直接用，无需训练）
+    qz_s, qz_t = FEAT / "qwen_zs_sample.npy", FEAT / "qwen_zs_test.npy"
+    if qz_s.exists() and qz_t.exists():
+        oof = np.load(qz_s).astype(np.float64).reshape(-1)
+        te = np.load(qz_t).astype(np.float64).reshape(-1)
+        print(f"[L1] qwen_zs AUC={roc_auc_score(lab_y, oof):.4f} (VLM zeroshot)")
+        members.append(("qwen_zs", oof, te))
+
     # DRCT
     for tag, crop in [
         ("convb_sdv14", "resize"),
