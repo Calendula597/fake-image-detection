@@ -18,3 +18,4 @@ exp12	0.991066	oof	24-member stack (dinoH+npr)
 exp13	0.581	oof	WePe probe - weak, perturbation-consistency family ineffective
 fsd	0.777	oof	FSD descriptor (real-only GMM) - moderate, weaker than CF/CLIP
 aide	0.652	oof	AIDE features - weak on this adversarial dataset
+qwen_zs	0.808	oof	Qwen3.5-0.8B zero-shot VLM subset AUC (new mechanism)
