@@ -336,6 +336,10 @@ def main():
     stack_parts = [rank01(stack_te["lr2"]), rank01(stack_te["et"]), rank01(stack_te["gb"]), rank01(base_rank)]
     stack_base = sum(wi * pi for wi, pi in zip(w2, stack_parts))
 
+    # 同时保存 L1-rank 简单加权结果（无 L2 元学习器，可能对抗集泛化更好）
+    pd.DataFrame({"id": test_ids, "score": base_rank}).to_csv(PRED / "ensemble_stack_l1rank.csv", index=False)
+    print(f"[L1-rank] saved {PRED / 'ensemble_stack_l1rank.csv'} (simpler, no L2 meta-learner)")
+
     # External predictions and recipe blending
     csv_test = load_external_predictions(test_ids)
     candidates = blend_recipes(stack_base, csv_test)
