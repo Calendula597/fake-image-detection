@@ -116,6 +116,25 @@ def build_members(lab_y, test_ids, lab_df=None):
         print(f"[L1] {tag} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
         members.append((tag, oof, te))
 
+    # FSD (描述子) + AIDE (特征) — 机制不同的新信号
+    for sname, tname, tag, method in [
+        ("fsd_desc_sample.npy", "fsd_desc_test.npy", "fsd_desc", "mlp"),
+        ("aide_256_sample.npy", "aide_256_test.npy", "aide", "mlp"),
+    ]:
+        sp, tp = FEAT / sname, FEAT / tname
+        if not sp.exists() or not tp.exists():
+            continue
+        Xs = np.load(sp).astype(np.float32)
+        Xt = np.load(tp).astype(np.float32)
+        if Xs.ndim > 2:
+            Xs = Xs.reshape(len(Xs), -1)
+        if Xt.ndim > 2:
+            Xt = Xt.reshape(len(Xt), -1)
+        oof = oof_mlp(Xs, lab_y)
+        te = fit_predict_mlp(Xs, lab_y, Xt)
+        print(f"[L1] {tag} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
+        members.append((tag, oof, te))
+
     # DRCT
     for tag, crop in [
         ("convb_sdv14", "resize"),
