@@ -30,8 +30,8 @@
 
 ## 当前最好提交文件（明天用）
 
-`outputs/submissions/stack_base26_sem.csv` — 26 成员堆叠（OOF 0.991），加了 FSD+AIDE。未提交过。
-备选：`outputs/submissions/stack_base21_sem.csv`（LB 实测 0.902824）。
+`outputs/submissions/stack_base27_sem.csv` — **27 成员堆叠（OOF 0.992084，目前最高）**，含 Qwen VLM。未提交过。
+备选：`outputs/submissions/stack_base26_sem.csv`（26 成员）、`stack_base21_sem.csv`（LB 实测 0.902824）。
 
 ## 已证伪/确认的方向（重要教训，别再重复）
 
@@ -65,6 +65,7 @@
 ## 明天方向（诚实评估）
 
 纯堆特征已接近上限（~0.90-0.91）。0.99 在此对抗集用现有公开方法大概率不可达。可试：
-1. 提交 stack_base26（FSD/AIDE 是不同机制，可能小幅提升）
-2. 若还要涨，只能找机制更独特的信号（频域/谱域/VLM推理），但收益预期递减
-3. 考虑接受 ~0.91 作为实际可达目标
+1. **先提交 stack_base27**（OOF 最高 0.992084，Qwen 是不同机制，可能小幅提升到 ~0.905-0.91）
+2. Qwen VLM（语义推理）是唯一在本数据集上给堆叠带来 OOF 提升的新机制（+0.001），可考虑更强 VLM 或更好 prompt
+3. 若还要涨，只能找机制更独特的信号（频域/谱域），但收益预期递减
+4. 理性目标 ~0.91-0.92，0.99 大概率不可达
