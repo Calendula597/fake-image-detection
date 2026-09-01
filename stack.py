@@ -164,6 +164,32 @@ def build_members(lab_y, test_ids, lab_df=None):
         print(f"[L1] meta AUC={roc_auc_score(lab_y, oof):.4f}")
         members.append(("meta", oof, te))
 
+    # NPR 特征（像素域，低相关性）
+    npr_s, npr_t = FEAT / "npr_256_sample.npy", FEAT / "npr_256_test.npy"
+    if npr_s.exists() and npr_t.exists():
+        Xs = np.load(npr_s).astype(np.float32)
+        Xt = np.load(npr_t).astype(np.float32)
+        oof = oof_lr(Xs, lab_y)
+        te = fit_predict_lr(Xs, lab_y, Xt)
+        print(f"[L1] npr_256 AUC={roc_auc_score(lab_y, oof):.4f}")
+        members.append(("npr_256", oof, te))
+
+    # 端到端微调模型（重增强，OOF+test 预测直接作为成员）
+    if lab_df is not None:
+        sample_ids = lab_df["id"].astype(str).tolist()
+        for ft_tag in ("ft_cf384_adamw", "ft_dinoL_adamw"):
+            oof_path = CR / "outputs" / "oof" / f"{ft_tag}_oof.csv"
+            test_path = CR / "outputs" / "predictions" / f"{ft_tag}_test.csv"
+            if not oof_path.exists() or not test_path.exists():
+                continue
+            oof_df = pd.read_csv(oof_path).set_index("id")["prob"]
+            oof = oof_df.reindex(sample_ids).to_numpy(dtype=np.float64)
+            te = pd.read_csv(test_path).set_index("id")["score"].reindex(test_ids).to_numpy(dtype=np.float64)
+            if np.isnan(oof).any() or np.isnan(te).any():
+                continue
+            print(f"[L1] {ft_tag} AUC={roc_auc_score(lab_y, oof):.4f} (finetuned)")
+            members.append((ft_tag, oof, te))
+
     return members
 
 

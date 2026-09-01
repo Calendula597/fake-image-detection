@@ -9,3 +9,4 @@ lb_11member	0.891552	lb	stack_base (11 members) on sem_image rematch
 exp8	0.990764	keep	add dinov3 L+B (19 members, marginal OOF gain)
 exp9	0.990810	keep	add CO-SPY sem+art (21 members)
 lb_19member	0.902021	lb	stack_base19 (dinov3) on sem_image
+exp10	0.9672	oof	CF384 5-fold AdamW finetune (Plan A, > frozen 0.96)
