@@ -72,6 +72,21 @@ def build_members(lab_y, test_ids, lab_df=None):
                 print(f"[L1] {tag}_{size}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
                 members.append((f"{tag}_{size}_{crop}", oof, te))
 
+    # DINOv3 (dinoL / dinoB)
+    for tag in ("dinoL", "dinoB"):
+        for crop in ("crop", "resize"):
+            pair = (
+                load_features(FEAT, tag, 224, crop, "sample"),
+                load_features(FEAT, tag, 224, crop, "test"),
+            )
+            if pair[0] is None or pair[1] is None:
+                continue
+            Xs, Xt = pair
+            oof = oof_mlp(Xs, lab_y)
+            te = fit_predict_mlp(Xs, lab_y, Xt)
+            print(f"[L1] {tag}_224_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
+            members.append((f"{tag}_224_{crop}", oof, te))
+
     # CLIP-L (特殊命名)
     for sname, tname, tag in [
         ("clip_vitl14_sample.npy", "clip_vitl14_test.npy", "clipL224"),

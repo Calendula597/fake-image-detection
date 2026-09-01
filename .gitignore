@@ -39,3 +39,5 @@ tmp/
 temp/
 *.tmp
 weights
+materials/
+.ipynb_checkpoints/
