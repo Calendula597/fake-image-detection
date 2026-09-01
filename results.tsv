@@ -14,3 +14,4 @@ ft_ens2	0.9781	oof	2-model aug-finetune ensemble (new direction)
 lb_21member	0.902824	lb	stack_base21 (CO-SPY) - plateaued
 ft_ens2_lb	0.846965	lb	2-model finetune ensemble - WORSE than frozen, finetune direction disproven
 exp11	0.9393	oof	dinov3-H+ (largest) - marginal, < clipH378
+exp12	0.991066	oof	24-member stack (dinoH+npr)
