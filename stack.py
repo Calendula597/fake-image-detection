@@ -37,6 +37,27 @@ def load_csv(path: Path):
     return d.set_index("id")["score"]
 
 
+def _deg_paths(tag, size, crop, n_max=3):
+    """查找某成员的退化训练特征文件（deg0/deg1/...）。"""
+    paths = []
+    for r in range(n_max):
+        p = FEAT / f"{tag}_{size}_{crop}_deg{r}_sample.npy"
+        if p.exists():
+            paths.append(p)
+    return paths
+
+
+def _fit_mlp_deg(Xs, y, Xt, deg_paths):
+    """在 [干净 + 退化] 特征上训练测试头（退化匹配训练，NTIRE 思路）。OOF 仍用干净特征。"""
+    from fake_image_detection.stacking import fit_predict_mlp
+    if not deg_paths:
+        return fit_predict_mlp(Xs, y, Xt)
+    Xs_aug = [Xs] + [np.load(p).astype(np.float32) for p in deg_paths]
+    X_aug = np.concatenate(Xs_aug, 0)
+    y_aug = np.concatenate([y] * len(Xs_aug), 0)
+    return fit_predict_mlp(X_aug, y_aug, Xt)
+
+
 def build_members(lab_y, test_ids, lab_df=None):
     """从 features/ 构建 Level-1 成员。"""
     members = []
@@ -52,8 +73,8 @@ def build_members(lab_y, test_ids, lab_df=None):
                 continue
             Xs, Xt = pair
             oof = oof_mlp(Xs, lab_y)
-            te = fit_predict_mlp(Xs, lab_y, Xt)
-            print(f"[L1] CF {tag}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
+            te = _fit_mlp_deg(Xs, lab_y, Xt, _deg_paths(f"commfor_{tag}", size, crop))
+            print(f"[L1] CF {tag}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP,deg)")
             members.append((f"cf_{tag}_{crop}", oof, te))
 
     # CLIP (clipH / clipBigG / clipH378)
@@ -68,8 +89,8 @@ def build_members(lab_y, test_ids, lab_df=None):
                     continue
                 Xs, Xt = pair
                 oof = oof_mlp(Xs, lab_y)
-                te = fit_predict_mlp(Xs, lab_y, Xt)
-                print(f"[L1] {tag}_{size}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
+                te = _fit_mlp_deg(Xs, lab_y, Xt, _deg_paths(tag, size, crop))
+                print(f"[L1] {tag}_{size}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP,deg)")
                 members.append((f"{tag}_{size}_{crop}", oof, te))
 
     # DINOv3 (dinoL / dinoB / dinoH)
@@ -83,8 +104,8 @@ def build_members(lab_y, test_ids, lab_df=None):
                 continue
             Xs, Xt = pair
             oof = oof_mlp(Xs, lab_y)
-            te = fit_predict_mlp(Xs, lab_y, Xt)
-            print(f"[L1] {tag}_224_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
+            te = _fit_mlp_deg(Xs, lab_y, Xt, _deg_paths(tag, 224, crop))
+            print(f"[L1] {tag}_224_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP,deg)")
             members.append((f"{tag}_224_{crop}", oof, te))
 
     # CO-SPY (语义 SigLIP + 伪影 VAE)
