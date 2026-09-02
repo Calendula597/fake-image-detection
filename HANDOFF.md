@@ -31,12 +31,14 @@
 
 ## 当前最好提交文件（明天用）
 
-- **首选 `outputs/submissions/stack_base28_sem.csv`** — 28 成员（27 + DIFT 扩散侧特征），含 Qwen VLM + DIFT。未提交过。**用于检验扩散侧(DIFT)是否像 Qwen 一样贡献 LB 提升**。
-- 备选：`stack_base27_sem.csv`（LB 实测 0.910985）、`stack_l1rank_sem.csv`（L1-rank 简单平均对照）。
+- **首选 `outputs/submissions/stack_deg_sem.csv`** — 退化匹配训练版（28 成员，强骨干测试头用干净+退化训练）。**用于检验 NTIRE 退化匹配结论**。未提交过。
+- **对照 `outputs/submissions/stack_deg_rank_sem.csv`** — 同上但 L1-rank 堆叠（无干净训练的 L2）。
+- 备选：`stack_base28_sem.csv`（+DIFT 扩散侧）、`stack_base27_sem.csv`（LB 实测 0.910985）。
 
 ## 已证伪/确认的方向（重要教训，别再重复）
 
-- ❌ **端到端微调（finetune）**：ft_ens2 LB 0.846 < 冻结 0.902，OOF→LB 差距更大（-0.131 vs -0.088）。微调让模型过拟合训练分布，对抗泛化更差。**已证伪，别再试**。微调 checkpoint 已删。
+- ⭐ **退化匹配训练（最重要突破，待 LB 验证）**：NTIRE 2026 调研发现 OOF→LB 鸿沟的根因是"**干净特征训练 vs 退化测试**"。修复 = 对训练图施加与测试类似的退化（JPEG/缩放/模糊/噪声），重新提取特征，**让堆叠头在 [干净+退化] 特征上训练**。已实现：`extract_degraded.py` 提取退化特征（CF384/CF224/clipH/clipBigG/clipH378/dinoL/dinoB），`stack.py` 的 `_fit_mlp_deg` 让强成员测试头用干净+退化训练。**候选：`stack_deg_sem.csv`(L2) / `stack_deg_rank_sem.csv`(L1-rank)**。**我此前"微调证伪"结论可能错了——不是微调不行，是训练数据/增强没对齐对抗分布。**
+- ❌ **端到端微调（finetune）**：ft_ens2 LB 0.846 < 冻结 0.902。但注意：NTIRE 前两名都是微调大 backbone 且成功，区别在退化增强对齐。微调 checkpoint 已删。
 - ❌ **dinov3-H+（最大版）**：OOF 0.9393，仍弱于 clipH378（0.9688），边际递减。
 - ❌ **RIGID/WePe/WaRPAD（扰动一致性信号）**：都 ~0.58-0.61，此数据集无效。
 - ❌ **近重复标签覆盖**：只有 9 个可靠，且高相似样本 stack 本来就分对，覆盖价值小。
