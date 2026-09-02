@@ -33,3 +33,4 @@ dift_scan	0.70	oof	DIFT mid-block best, timestep insensitive, near-optimal
 sida_vlm	0.7434	oof	SIDA-7B forensic VLM - weaker than Qwen, dead end
 ntire_research	-	research	NTIRE2026: degradation-matched training is key, finetune not disproven
 exp21	0.991636	oof	degradation-matched training (test heads on clean+degraded)
+exp21b	-	oof	extend degradation training to all strong backbones + L1-rank variant
