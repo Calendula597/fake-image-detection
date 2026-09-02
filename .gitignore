@@ -42,3 +42,5 @@ weights
 materials/
 .ipynb_checkpoints/
 external/
+.venv-sida/
+materials/hf_cache/
