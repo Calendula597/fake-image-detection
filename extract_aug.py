@@ -76,14 +76,23 @@ def main():
     ap.add_argument("--all-genimage", action="store_true",
                     help="处理 data_real/genimage_* 全部目录 + coco + flux")
     ap.add_argument("--bs", type=int, default=32)
+    ap.add_argument("--deg", action="store_true", help="处理 data_real_deg/ 退化变体")
     args = ap.parse_args()
     device = torch.device("cuda:0")
 
     if args.all_genimage:
         splits = {"coco": sorted((CR / args.real_dir).glob("*.jpg"))}
         for d in sorted((CR / "data_real").glob("*")):
+            if d.name.startswith("holdout_"):  # 留出验证集，绝不进训练
+                continue
             if d.is_dir() and d.name != args.real_dir.split("/")[-1] and list(d.glob("*.jpg")):
                 splits[d.name.replace("coco_val_ai_", "").replace("genimage_", "")] = sorted(d.glob("*.jpg"))
+    elif args.deg:
+        splits = {
+            d.name: sorted(d.glob("*.jpg"))
+            for d in sorted((CR / "data_real_deg").glob("*"))
+            if d.is_dir() and not d.name.startswith("holdout_") and list(d.glob("*.jpg"))
+        }
     else:
         splits = {
             "coco": sorted((CR / args.real_dir).glob("*.jpg")),

@@ -290,7 +290,7 @@ def build_members(lab_y, test_ids, lab_df=None):
         Xs, Xt = pair
         X_aug = np.concatenate([X for _, X in aug_parts], 0)
         y_aug = np.concatenate([
-            np.zeros(len(X)) if n == "coco" else np.ones(len(X)) for n, X in aug_parts
+            np.zeros(len(X)) if "coco" in n else np.ones(len(X)) for n, X in aug_parts
         ])
         gen_names = [n for n, _ in aug_parts]
 
