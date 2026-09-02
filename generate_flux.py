@@ -80,19 +80,20 @@ def load_pipeline():
 
 
 def load_coco_captions(n: int, seed: int = 0) -> pd.DataFrame:
-    """从自建测试集已下载的 COCO val 取 caption。"""
+    """流式拉取 COCO captions（不下载图片，几 MB 即可）。prompt 无需与真实图配对。"""
     from datasets import load_dataset
 
-    ds = load_dataset("detection-datasets/coco", split="val")
-    rows = []
+    ds = load_dataset("jxie/coco_captions", split="train", streaming=True)
+    rows, seen = [], set()
     for ex in ds:
-        anns = ex.get("objects", {})
-        caps = ex.get("captions") or []
-        if isinstance(caps, list) and caps:
-            rows.append({"image_id": ex["image_id"], "caption": caps[0]})
+        cap = ex.get("caption") or ""
+        iid = ex.get("image_id", len(rows))
+        if cap and iid not in seen:
+            seen.add(iid)
+            rows.append({"image_id": iid, "caption": cap})
         if len(rows) >= n * 2:
             break
-    df = pd.DataFrame(rows).drop_duplicates("image_id")
+    df = pd.DataFrame(rows)
     return df.sample(n=n, random_state=seed).reset_index(drop=True)
 
 
