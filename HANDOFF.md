@@ -1,4 +1,4 @@
-# 复赛改进 — 交接文档（更新至 2026-09-01）
+# 复赛改进 — 交接文档（更新至 2026-09-02）
 
 > 给明天的自己 / 新会话：本文档包含恢复进度所需的全部状态。
 > 恢复对话：`cd /root/autodl-tmp && kimi --continue`，然后 `/goal resume`。
@@ -28,6 +28,37 @@
 | 09-01 | stack_base21(+CO-SPY) | 冻结堆叠 | 0.902824 |
 | 09-01 | ft_ens2(微调集成) | 端到端微调 | 0.846965 |
 | 09-01 | stack_base27(+Qwen/FSD/AIDE) | 冻结堆叠 | **0.910985** ← 当前最好 |
+| 09-01 | stack_deg(退化匹配) | 退化匹配训练 | 0.910284 |
+| 09-01 | stack_base29_rank(+bfree) | 冻结堆叠 | 0.905813 |
+
+## 09-02 新增候选（未上 LB）
+
+- **`stack_base31_sem.csv`（首选）** — 30 成员 + `sizeprior`（尺寸先验分层回退版：精确尺寸→q8→宽高比×面积档×mult8桶；LOO OOF 0.809，测试集 81% 精确尺寸覆盖）
+- `stack_base30_sem.csv` — sizeprior 初版（未见尺寸回退 0.5），已被 base31 取代
+- `blend27_degrank_sem.csv` — 0.6×base27 + 0.4×deg_rank 的 rank 融合
+- `stack_base28_sem.csv` — 只 +DIFT 的对照
+
+## 09-02 尺寸先验发现（重要新信号）
+
+- 训练集 尺寸→AI率 强相关：512²=0.96、1024²=0.85、256×144=1.00（AI）；1024×683=0.02、341×512=0.00（真实相机尺寸）
+- LOO 尺寸查表单特征 OOF AUC=**0.8127**，强于整个 meta 成员（0.70），与 meta 相关性仅 0.45
+- 测试集 81% 图片尺寸在训练表中；未见尺寸用分层回退
+- 量化表指纹查表已证伪（AUC 0.41，赛方统一重编码，只有 14 种表）
+
+## 09-02 赛事情报（subagent 调研确认）
+
+- 比赛 = **第五届琶洲算法大赛"湾区杯"AI生成内容鉴别挑战赛**，task2 图片检测，出题方 = **腾讯朱雀实验室**。复赛进行中，无公开题解。
+- 官方说明测试集覆盖"扩散模型、GAN、**流匹配**"等主流架构 + 压缩/裁剪/滤镜/社交平台转发对抗。
+- 复赛假图大概率含商业生成器：MJ/SD/DALL·E/FLUX + 国产（**混元、即梦/Seedream、可灵/Kling、Qwen-Image/万相**，腾讯系可能偏多）。
+- NTIRE 2026 报告（arXiv:2604.11487）是最近似参考：real 来自 CC12M/CommonPool/RedCaps，fake 用 VLM caption→LLM 改写 prompt 配对生成，**对齐分辨率/宽高比/JPEG 质量分布**，测试保留更新生成器（Qwen-Image/HiDream/Nano Banana 等）。
+- 未试过的高价值方向（按优先级）：
+  1. **商业 API 生成数据**（Seedream/Kling/混元/Nano Banana）— 需 API key，问用户
+  2. **本地跑 FLUX.1-schnell（流匹配，官方点名）生成新假图**：扩增训练池 + 建更准的自建测试集 ← 当前进行中（GGUF Q8 下载）
+  3. **DDA 数据对齐**（NeurIPS'25 腾讯优图，github.com/roy-ch/Dual-Data-Alignment）：VAE 重建真实图成内容匹配假图 + 重加 JPEG 压缩对齐频谱 + mixup（与 B-Free 不同在 JPEG 对齐）
+  4. 成对干净/退化训练（TeleAI LPT）+ 赛事匹配的退化（**moiré、color cast、speckle noise**）
+  5. SRM/Bayar 高通残差分支（RAPID）— 与 NPR 不同的取证线索，便宜可加
+  6. logit 空间门控级联融合（INTSIG）— 推理期技巧
+- ⚠️ 朱雀检测器本身公开可用，可作为特征，但它是出题方产品，涉嫌违反诚信参赛，**不要用**除非用户明确批准
 
 ## 当前最好提交文件（明天用）
 
