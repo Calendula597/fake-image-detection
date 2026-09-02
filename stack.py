@@ -222,26 +222,45 @@ def build_members(lab_y, test_ids, lab_df=None):
         members.append(("meta", oof, te))
 
         # 尺寸先验：生成器原生尺寸（512²/768²/1024² 等）在训练集上高度偏向 AI。
-        # LOO 查表防止自身泄漏；测试集未见尺寸回退到全局先验。
+        # LOO 查表防止自身泄漏；未见尺寸按 精确尺寸→取整到8的倍数→(宽高比,面积档,mult8) 逐级回退。
         ym = train_m["label"].to_numpy() if "label" in train_m.columns else lab_y
         assert len(ym) == len(lab_y)
         tr_sizes = list(zip(train_m["width"].to_numpy(), train_m["height"].to_numpy()))
         te_sizes = list(zip(test_m["width"].to_numpy(), test_m["height"].to_numpy()))
-        cnt = {}
+
+        def _q8(s):
+            return (round(s[0] / 8) * 8, round(s[1] / 8) * 8)
+
+        def _bucket(s):
+            w, h = s
+            ar = w / max(h, 1)
+            arb = "sq" if 0.9 <= ar <= 1.1 else ("wide" if ar > 1.1 else "tall")
+            area = w * h
+            sc = "s" if area < 200000 else ("m" if area < 800000 else "l")
+            return (arb, sc, int(w % 8 == 0 and h % 8 == 0))
+
+        levels = (lambda s: s, _q8, _bucket)
+        cnts = [dict() for _ in levels]
         for s, l in zip(tr_sizes, ym):
-            a, b = cnt.get(s, (0, 0))
-            cnt[s] = (a + (1 - int(l)), b + int(l))
-        oof = np.array([
-            (cnt[s][1] - l + 0.5) / (cnt[s][0] + cnt[s][1] - 1 + 1.0)
-            for s, l in zip(tr_sizes, ym)
-        ])
-        prior_p = float(ym.mean())
-        te = np.array([
-            (cnt[s][1] + 1.0) / (cnt[s][0] + cnt[s][1] + 2.0) if s in cnt else prior_p
-            for s in te_sizes
-        ])
-        n_unseen = sum(1 for s in te_sizes if s not in cnt)
-        print(f"[L1] sizeprior AUC={roc_auc_score(ym, oof):.4f} unseen_test_sizes={n_unseen}/{len(te_sizes)}")
+            for cnt, fn in zip(cnts, levels):
+                k = fn(s)
+                a, b = cnt.get(k, (0, 0))
+                cnt[k] = (a + (1 - int(l)), b + int(l))
+
+        def _lookup(s, l=None):
+            for cnt, fn in zip(cnts, levels):
+                k = fn(s)
+                n0, n1 = cnt.get(k, (0, 0))
+                if l is not None:  # LOO：去掉自身
+                    n0, n1 = n0 - (1 - int(l)), n1 - int(l)
+                if n0 + n1 >= 3:
+                    return (n1 + 0.5) / (n0 + n1 + 1.0)
+            return float(ym.mean())
+
+        oof = np.array([_lookup(s, l) for s, l in zip(tr_sizes, ym)])
+        te = np.array([_lookup(s) for s in te_sizes])
+        n_coarse = sum(1 for s in te_sizes if cnts[0].get(s, (0, 0))[0] + cnts[0].get(s, (0, 0))[1] < 3)
+        print(f"[L1] sizeprior AUC={roc_auc_score(ym, oof):.4f} test_coarse_fallback={n_coarse}/{len(te_sizes)}")
         members.append(("sizeprior", oof, te))
 
     # NPR 特征（像素域，低相关性）
