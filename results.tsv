@@ -26,3 +26,5 @@ exp17	0.991940	oof	L1-rank simple stacking (vs L2-blend 0.992084)
 qwen_prompt_ens	0.7776	oof	prompt ensemble < best single prompt; prompt tuning is a dead end
 fft_spectral	0.5984	oof	pure FFT spectral features - weak, another dead end
 lb_27member	0.910985	lb	stack_base27 (Qwen+FSD+AIDE) - NEW BEST, my OOF pessimism was wrong
+diff_noise_err	0.50	oof	SD single-step noise pred error - random (LAION overlap)
+dift_unet	0.7442	oof	DIFT UNet mid-block features - best diffusion-side signal

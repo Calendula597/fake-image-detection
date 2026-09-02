@@ -116,10 +116,11 @@ def build_members(lab_y, test_ids, lab_df=None):
         print(f"[L1] {tag} AUC={roc_auc_score(lab_y, oof):.4f} (MLP)")
         members.append((tag, oof, te))
 
-    # FSD (描述子) + AIDE (特征) — 机制不同的新信号
+    # FSD (描述子) + AIDE (特征) + DIFT (扩散UNet特征) — 机制不同的新信号
     for sname, tname, tag, method in [
         ("fsd_desc_sample.npy", "fsd_desc_test.npy", "fsd_desc", "mlp"),
         ("aide_256_sample.npy", "aide_256_test.npy", "aide", "mlp"),
+        ("dift_mid_sample.npy", "dift_mid_test.npy", "dift", "mlp"),
     ]:
         sp, tp = FEAT / sname, FEAT / tname
         if not sp.exists() or not tp.exists():
