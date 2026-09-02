@@ -56,3 +56,4 @@ stack_aug6_l1rank_sem.csv	PENDING	aug6 members but L1-rank blend (no L2 meta-lea
 stack_aug7_sem.csv	PENDING	FINAL: 35 members, fluxaug heads 9100 samples (full 600 FLUX + deg variants), Muon-MLP, L2-blend OOF 0.992492; validated, untested on LB
 stack_aug7_l1rank_sem.csv	PENDING	aug7 members, L1-rank blend (no L2); diversity candidate; validated, untested on LB
 stack_aug8_sem.csv	PENDING	35 members, aug pool 10100 samples (+SDXL + deg_sdxl, 19 splits); SDXL was already solved (0.9997); L2-blend OOF 0.992764; validated, untested on LB
+stack_aug9_sem.csv	PENDING	FINAL: 35 members, aug pool 10700 samples/21 splits (+JourneyDB + deg); L2-blend OOF 0.992240; validated, untested on LB
