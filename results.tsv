@@ -29,3 +29,4 @@ lb_27member	0.910985	lb	stack_base27 (Qwen+FSD+AIDE) - NEW BEST, my OOF pessimis
 diff_noise_err	0.50	oof	SD single-step noise pred error - random (LAION overlap)
 dift_unet	0.7442	oof	DIFT UNet mid-block features - best diffusion-side signal
 exp19	0.991636	oof	28-member stack (+DIFT diffusion)
+dift_scan	0.70	oof	DIFT mid-block best, timestep insensitive, near-optimal
