@@ -51,3 +51,4 @@ stack_aug2_sem.csv	PENDING	35 members = aug1 + fluxaug_clipBigG(0.9067)/fluxaug_
 stack_aug3_sem.csv	PENDING	35 members, aug heads trained on 7867+ samples incl degraded variants; deg-holdout validated (cf384 ADM 0.93->0.997); validated, untested on LB
 stack_aug4_sem.csv	PENDING	35 members, cf384/clipH378 aug heads now 8474 samples (+vqdm, +flux增量); L2-blend OOF 0.992796; validated, untested on LB
 stack_aug5_sem.csv	PENDING	35 members, all 4 aug heads at full coverage (8474-8501 samples incl vqdm); L2-blend OOF 0.992982; validated, untested on LB
+stack_aug6_sem.csv	PENDING	35 members, fluxaug heads switched to Muon (OOF: cf384 0.9613 vs 0.9349 AdamW, clipH378 0.9608, clipBigG 0.9462, dinoL 0.8853); validated, untested on LB
