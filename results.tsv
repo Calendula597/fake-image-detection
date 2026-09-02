@@ -40,3 +40,5 @@ exp22	0.992344	oof	29-member stack (+bfree), L1-rank +0.0005
 bfree_multi	0.8936	oof	multi-strength fakes don't improve bfree head (caps ~0.894)
 bfree_ft	0.8928	oof	B-Free full finetune = LR head, caps ~0.894 cross-gen (SD v1-4 only)
 sd21_gated	-	oof	SD 2.1 gated/unavailable; B-Free capped at 0.894 with SD v1-4
+kandinsky	-	oof	abandoned Kandinsky (11G, disk issues); B-Free capped at 0.894 SD v1-4
+lb_29member_bfree	0.905813	lb	stack_base29_rank (bfree) - WORSE than 0.910985, simplified B-Free doesn't transfer to new generators
