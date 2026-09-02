@@ -273,6 +273,25 @@ def build_members(lab_y, test_ids, lab_df=None):
         print(f"[L1] npr_256 AUC={roc_auc_score(lab_y, oof):.4f}")
         members.append(("npr_256", oof, te))
 
+    # SRM/Bayar 高通残差取证特征（RAPID 思路，ET 头优于 LR）
+    srm_s, srm_t = FEAT / "srm_sample.npy", FEAT / "srm_test.npy"
+    if srm_s.exists() and srm_t.exists():
+        from sklearn.ensemble import ExtraTreesClassifier
+        from sklearn.model_selection import StratifiedKFold as SKF
+        Xs = np.load(srm_s).astype(np.float32)
+        Xt = np.load(srm_t).astype(np.float32)
+        skf = SKF(5, shuffle=True, random_state=42)
+        oof = np.zeros(len(lab_y), dtype=np.float64)
+        for tr, va in skf.split(Xs, lab_y):
+            clf = ExtraTreesClassifier(n_estimators=400, n_jobs=-1, random_state=2026)
+            clf.fit(Xs[tr], lab_y[tr])
+            oof[va] = clf.predict_proba(Xs[va])[:, 1]
+        clf = ExtraTreesClassifier(n_estimators=800, n_jobs=-1, random_state=2026)
+        clf.fit(Xs, lab_y)
+        te = clf.predict_proba(Xt)[:, 1]
+        print(f"[L1] srm AUC={roc_auc_score(lab_y, oof):.4f}")
+        members.append(("srm", oof, te))
+
     return members
 
 
