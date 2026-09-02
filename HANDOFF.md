@@ -151,3 +151,4 @@
 - **原成员头（1000 单分布样本）：Muon < AdamW**（clipH378 0.9688→0.9407）——正交化更新在小数据单分布下欠拟合
 - 结论：Muon 仅用于 fluxaug_* 头（已实现 `_train_mlp_muon`，单卡版），原成员保持 AdamW。候选 `stack_aug6_sem.csv`。
 - SDXL（ash12321/sdxl-generated-10k）：无 aug 已 0.9997/0.9920，非盲区；仍入池（aug8，10100 样本）。**开源生成器覆盖已饱和，剩余未知只在商业 API 生成器。**
+- JourneyDB（MJ v5.1+）：无 aug 已 0.9928/0.9940，有 aug 1.0000——MJ 家族被 GenImage-MJ 扩增完全覆盖。**所有本地可得的生成器家族（10 个）均已验证 0.99+；剩余未知仅在商业 API 生成器（Seedream/Kling/混元/Nano Banana/DALL·E3）和比赛对抗管线。**
