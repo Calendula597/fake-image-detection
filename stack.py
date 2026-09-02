@@ -266,7 +266,12 @@ def build_members(lab_y, test_ids, lab_df=None):
     # 多生成器扩增头：[1000 训练图 + COCO真(0) + 各生成器假图(1)] 上训练检测头。
     # 覆盖 FLUX/SD14/Midjourney/wukong/glide/BigGAN/ADM（ADM 和 MJ 是 CF384 最弱切片）。
     # OOF：每个 fold 训练 = 训练折 + 全部 aug 样本（aug 永不进验证折，无泄漏）。
-    for tag, feat_tag, size in (("cf384", "commfor_cf384", 384), ("clipH378", "clipH378", 378)):
+    for tag, feat_tag, size in (
+        ("cf384", "commfor_cf384", 384),
+        ("clipH378", "clipH378", 378),
+        ("clipBigG", "clipBigG", 224),
+        ("dinoL", "dinoL", 224),
+    ):
         pair = (
             load_features(FEAT, feat_tag, size, "crop", "sample"),
             load_features(FEAT, feat_tag, size, "crop", "test"),

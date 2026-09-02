@@ -47,3 +47,4 @@ stack_base30_sem.csv	PENDING	stack_base27 + sizeprior member (LOO size-lookup AU
 stack_base31_sem.csv	PENDING	sizeprior with hierarchical backoff (exact->q8->bucket), coarse fallback for 4499/20000 test; validated, untested on LB
 stack_base32_sem.csv	PENDING	31 members = base31 + srm (SRM/Bayar residual, ET head, OOF 0.6620, near-zero corr with sizeprior); validated, untested on LB
 stack_aug1_sem.csv	PENDING	33 members = base32 + fluxaug_cf384/clipH378 (multi-generator aug heads: 3899 aug imgs from adm/biggan/coco/flux/glide/midjourney/sd14/wukong); validated, untested on LB
+stack_aug2_sem.csv	PENDING	35 members = aug1 + fluxaug_clipBigG(0.9067)/fluxaug_dinoL(0.8896); L2-blend OOF 0.992506; validated, untested on LB
