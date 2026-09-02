@@ -25,14 +25,14 @@
 | 08-31 | stack_base(11成员) | 冻结堆叠 | 0.891552 |
 | 08-31 | blend_v2(base+ft+自训练) | 融合 | 0.889155 |
 | 09-01 | stack_base19(+dinov3) | 冻结堆叠 | 0.902021 |
-| 09-01 | stack_base21(+CO-SPY) | 冻结堆叠 | **0.902824** ← 当前最好 |
+| 09-01 | stack_base21(+CO-SPY) | 冻结堆叠 | 0.902824 |
 | 09-01 | ft_ens2(微调集成) | 端到端微调 | 0.846965 |
+| 09-01 | stack_base27(+Qwen/FSD/AIDE) | 冻结堆叠 | **0.910985** ← 当前最好 |
 
 ## 当前最好提交文件（明天用）
 
-- **首选 `outputs/submissions/stack_base27_sem.csv`** — 27 成员 L2-blend 堆叠（OOF 0.992084，目前最高），含 Qwen VLM。未提交过。
-- **对照 `outputs/submissions/stack_l1rank_sem.csv`** — 同 27 成员但用 L1-rank 简单平均（OOF 0.991940，无 L2 元学习器）。用于对比"简单堆叠是否对抗集泛化更好"。
-- 备选：`stack_base26_sem.csv`（26 成员）、`stack_base21_sem.csv`（LB 实测 0.902824）。
+- **首选 `outputs/submissions/stack_base28_sem.csv`** — 28 成员（27 + DIFT 扩散侧特征），含 Qwen VLM + DIFT。未提交过。**用于检验扩散侧(DIFT)是否像 Qwen 一样贡献 LB 提升**。
+- 备选：`stack_base27_sem.csv`（LB 实测 0.910985）、`stack_l1rank_sem.csv`（L1-rank 简单平均对照）。
 
 ## 已证伪/确认的方向（重要教训，别再重复）
 
@@ -41,8 +41,10 @@
 - ❌ **RIGID/WePe/WaRPAD（扰动一致性信号）**：都 ~0.58-0.61，此数据集无效。
 - ❌ **近重复标签覆盖**：只有 9 个可靠，且高相似样本 stack 本来就分对，覆盖价值小。
 - ✅ **CLIP(clipH378) 是最强冻结骨干**（0.9688），比所有 dinov3 强。
-- ✅ **"加新算法族"有效，"加同类特征"封顶**：11→19(加dinov3新族)+0.0105，19→21(加CO-SPY)只+0.0008。
-- ⚠️ **SOTA 论文方法在此对抗集上都变弱**：FSD(0.777)、AIDE(0.652)、NPR(0.68)、cospyArt(0.69)，都不如 CF/CLIP。论文在其它 benchmark 的 0.96 不迁移。
+- ✅ **"加新算法族"有效，"加同类特征"封顶**：11→19(加dinov3新族)+0.0105，19→21(加CO-SPY)只+0.0008，21→27(加Qwen/FSD/AIDE)+0.0082。
+- ✅ **Qwen VLM 是最有效的非视觉新机制**（OOF 0.76，但 LB 证明有效）。**VLM 侧已探明：Qwen-0.8B 就是最优，专业取证 VLM（SIDA-7B 0.74、AntifakePrompt 拿不到、其它太大）都更差或不可行，别再试 VLM 了**。
+- ⚠️ **SOTA 论文方法在此对抗集上都变弱**：FSD(0.777)、AIDE(0.652)、NPR(0.68)、cospyArt(0.69)，都不如 CF/CLIP。论文在其它 benchmark 的 0.96 不迁移。**OOF 不预测 LB，一切以 LB 实测为准**。
+- ⚠️ **扩散侧"重建/噪声"路线弱**（SD 在 LAION 训练，真实图也在分布内）：单步噪声误差~0.50、cospyArt(VAE)0.69。**DIFT(SD UNet 特征)=0.7442 是扩散侧最好信号**（把扩散模型当 backbone）。已入 28 成员堆叠，待 LB 检验。
 
 ## 当前 pipeline（已验证正确）
 
