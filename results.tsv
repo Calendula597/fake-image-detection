@@ -35,3 +35,5 @@ ntire_research	-	research	NTIRE2026: degradation-matched training is key, finetu
 exp21	0.991636	oof	degradation-matched training (test heads on clean+degraded)
 exp21b	-	oof	extend degradation training to all strong backbones + L1-rank variant
 lb_stack_deg	0.910284	lb	stack_deg (degradation-matched L2) - NO improvement over 0.910985; degradation mismatch is NOT the root cause
+bfree	0.8942	oof	simplified B-Free debiased head, cross-gen generalization confirmed
+exp22	0.992344	oof	29-member stack (+bfree), L1-rank +0.0005
