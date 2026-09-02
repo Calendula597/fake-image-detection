@@ -128,3 +128,10 @@
 - **ADM 和 Midjourney 是 CF384 的最弱切片**（mean_p=0.20/0.57，被判为真）；wukong/BigGAN 已基本解决。
 - 候选 `stack_aug1_sem.csv`：33 成员，新增 fluxaug_cf384/clipH378（3899 张多生成器 aug 训练头，OOF 0.9425/0.9497）。
 - 数据：`data_real/genimage_{midjourney,wukong,glide,biggan,adm}` 各 500（bitmind/GenImage_*），`coco_val_ai_flux`（本地 FLUX schnell 生成中）。
+
+## 09-03 留出集验证（aug 机制实证有效）
+
+- 留出集 = GenImage streaming skip 前 500 后的新图（MJ/ADM 各 300，未参与训练）
+- cf384: MJ 0.9847→**0.9980**, ADM 0.8442→**0.9974**；clipH378: MJ 0.9537→**0.9999**, ADM 0.8475→**1.0000**
+- 结论：多生成器 aug 头确实补上了已证实的盲区，stack_aug2 值得优先提交。剩余风险仅在于比赛测试集的生成器构成。
+- 另：MLP 头（归一化）比 LR 头（原始特征）跨生成器泛化显著更好（ADM 无 aug：MLP 0.844 vs LR 0.635）。
