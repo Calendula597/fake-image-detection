@@ -112,3 +112,19 @@
 - 干净评估（eval_selftest.py，绝对路径）：CF384 对 FLUX=**0.9987**、SD14=1.0000；clipH378 对 FLUX=0.8275、SD14=0.7954。**骨干对开源新生代检测良好**。
 - 策略修正：LB 0.91 的差距大概率来自**商业闭源生成器**（Midjourney/Seedream/混元/DALL·E），本地无法生成 → **商业 API 数据是唯一未证伪的大杠杆**（等用户答复 API 渠道）。
 - 教训：任何"异常低"的评估结果先检查输入是否被静默替换；`ImageDataset` 的静默黑图回退是个坑。
+
+## 09-03 生成器难度地图（比赛训练头，COCO 为真）
+
+| 生成器 | CF384 | clipH378 |
+|---|---|---|
+| ADM (guided-diffusion) | **0.635** | 0.868 |
+| Midjourney (GenImage v5) | **0.861** | 0.978 |
+| glide | 0.933 | 0.958 |
+| FLUX schnell | 0.962 | 0.952 |
+| BigGAN | 0.968 | 0.995 |
+| wukong | 0.995 | 0.994 |
+| SD1.4 img2img | 0.995 | 0.801 |
+
+- **ADM 和 Midjourney 是 CF384 的最弱切片**（mean_p=0.20/0.57，被判为真）；wukong/BigGAN 已基本解决。
+- 候选 `stack_aug1_sem.csv`：33 成员，新增 fluxaug_cf384/clipH378（3899 张多生成器 aug 训练头，OOF 0.9425/0.9497）。
+- 数据：`data_real/genimage_{midjourney,wukong,glide,biggan,adm}` 各 500（bitmind/GenImage_*），`coco_val_ai_flux`（本地 FLUX schnell 生成中）。

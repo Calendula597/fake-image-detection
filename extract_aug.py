@@ -73,13 +73,21 @@ def main():
     ap.add_argument("--backbones", nargs="+", default=BACKBONES)
     ap.add_argument("--real-dir", default="data_real/coco_val")
     ap.add_argument("--ai-dir", default="data_real/coco_val_ai_flux")
+    ap.add_argument("--all-genimage", action="store_true",
+                    help="处理 data_real/genimage_* 全部目录 + coco + flux")
     args = ap.parse_args()
     device = torch.device("cuda:0")
 
-    splits = {
-        "coco": sorted((CR / args.real_dir).glob("*.jpg")),
-        "flux": sorted((CR / args.ai_dir).glob("*.jpg")),
-    }
+    if args.all_genimage:
+        splits = {"coco": sorted((CR / args.real_dir).glob("*.jpg"))}
+        for d in sorted((CR / "data_real").glob("*")):
+            if d.is_dir() and d.name != args.real_dir.split("/")[-1] and list(d.glob("*.jpg")):
+                splits[d.name.replace("coco_val_ai_", "").replace("genimage_", "")] = sorted(d.glob("*.jpg"))
+    else:
+        splits = {
+            "coco": sorted((CR / args.real_dir).glob("*.jpg")),
+            "flux": sorted((CR / args.ai_dir).glob("*.jpg")),
+        }
     for tag in args.backbones:
         model, tf, kind = load_backbone(tag, device)
         for split, files in splits.items():

@@ -263,26 +263,31 @@ def build_members(lab_y, test_ids, lab_df=None):
         print(f"[L1] sizeprior AUC={roc_auc_score(ym, oof):.4f} test_coarse_fallback={n_coarse}/{len(te_sizes)}")
         members.append(("sizeprior", oof, te))
 
-    # FLUX 扩增头：[1000 训练图 + COCO真(0) + FLUX假(1)] 上训练检测头。
-    # 对齐测试集的新生代流匹配生成器（NTIRE 2026 冠军策略的本地版）。
+    # 多生成器扩增头：[1000 训练图 + COCO真(0) + 各生成器假图(1)] 上训练检测头。
+    # 覆盖 FLUX/SD14/Midjourney/wukong/glide/BigGAN/ADM（ADM 和 MJ 是 CF384 最弱切片）。
     # OOF：每个 fold 训练 = 训练折 + 全部 aug 样本（aug 永不进验证折，无泄漏）。
     for tag, feat_tag, size in (("cf384", "commfor_cf384", 384), ("clipH378", "clipH378", 378)):
-        coco_p, flux_p = FEAT / f"aug_{tag}_coco.npy", FEAT / f"aug_{tag}_flux.npy"
         pair = (
             load_features(FEAT, feat_tag, size, "crop", "sample"),
             load_features(FEAT, feat_tag, size, "crop", "test"),
         )
-        if not coco_p.exists() or not flux_p.exists() or pair[0] is None or pair[1] is None:
+        aug_parts = [
+            (p.stem.replace(f"aug_{tag}_", ""), np.load(p).astype(np.float32))
+            for p in sorted(FEAT.glob(f"aug_{tag}_*.npy"))
+        ]
+        aug_parts = [(n, X) for n, X in aug_parts if len(X) > 0]
+        if pair[0] is None or pair[1] is None or len(aug_parts) < 2:
             continue
         import torch
         from sklearn.model_selection import StratifiedKFold as SKF
         from fake_image_detection.stacking import _predict_mlp, _train_mlp
 
         Xs, Xt = pair
-        X_coco = np.load(coco_p).astype(np.float32)
-        X_flux = np.load(flux_p).astype(np.float32)
-        X_aug = np.concatenate([X_coco, X_flux], 0)
-        y_aug = np.concatenate([np.zeros(len(X_coco)), np.ones(len(X_flux))])
+        X_aug = np.concatenate([X for _, X in aug_parts], 0)
+        y_aug = np.concatenate([
+            np.zeros(len(X)) if n == "coco" else np.ones(len(X)) for n, X in aug_parts
+        ])
+        gen_names = [n for n, _ in aug_parts]
 
         def _norm(X):
             return X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-8)
@@ -299,7 +304,7 @@ def build_members(lab_y, test_ids, lab_df=None):
         te = fit_predict_mlp(
             np.concatenate([Xs, X_aug], 0), np.concatenate([lab_y, y_aug], 0), Xt
         )
-        print(f"[L1] fluxaug_{tag} AUC={roc_auc_score(lab_y, oof):.4f} (MLP, +{len(y_aug)} aug)")
+        print(f"[L1] fluxaug_{tag} AUC={roc_auc_score(lab_y, oof):.4f} (MLP, +{len(y_aug)} aug from {gen_names})")
         members.append((f"fluxaug_{tag}", oof, te))
 
     # NPR 特征（像素域，低相关性）
