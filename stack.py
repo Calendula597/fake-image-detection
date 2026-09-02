@@ -165,6 +165,14 @@ def build_members(lab_y, test_ids, lab_df=None):
         print(f"[L1] qwen_zs AUC={roc_auc_score(lab_y, oof):.4f} (VLM zeroshot)")
         members.append(("qwen_zs", oof, te))
 
+    # B-Free 去偏差检测分数（真 vs SD假 训练的 LR，跨生成器机制，1 维标量，直接用）
+    bf_s, bf_t = FEAT / "bfree_sample.npy", FEAT / "bfree_test.npy"
+    if bf_s.exists() and bf_t.exists():
+        oof = np.load(bf_s).astype(np.float64).reshape(-1)
+        te = np.load(bf_t).astype(np.float64).reshape(-1)
+        print(f"[L1] bfree AUC={roc_auc_score(lab_y, oof):.4f} (B-Free debiased)")
+        members.append(("bfree", oof, te))
+
     # DRCT
     for tag, crop in [
         ("convb_sdv14", "resize"),
