@@ -75,6 +75,7 @@ def main():
     ap.add_argument("--ai-dir", default="data_real/coco_val_ai_flux")
     ap.add_argument("--all-genimage", action="store_true",
                     help="处理 data_real/genimage_* 全部目录 + coco + flux")
+    ap.add_argument("--bs", type=int, default=32)
     args = ap.parse_args()
     device = torch.device("cuda:0")
 
@@ -101,7 +102,7 @@ def main():
             todo = [str(f) for f in files if f.name not in done_ids]
             print(f"{tag}/{split}: {len(done_ids)} done, {len(todo)} todo", flush=True)
             if todo:
-                new = extract(model, todo, tf, kind, device)
+                new = extract(model, todo, tf, kind, device, bs=args.bs)
                 feats = np.concatenate([old, new], 0) if old.size else new
                 ids = list(done_ids) + [Path(p).name for p in todo]
                 # 保持顺序：旧 id 顺序无法从 set 恢复，改为重存（旧 ids 文件 + 新）
