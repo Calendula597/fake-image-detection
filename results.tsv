@@ -43,3 +43,4 @@ sd21_gated	-	oof	SD 2.1 gated/unavailable; B-Free capped at 0.894 with SD v1-4
 kandinsky	-	oof	abandoned Kandinsky (11G, disk issues); B-Free capped at 0.894 SD v1-4
 lb_29member_bfree	0.905813	lb	stack_base29_rank (bfree) - WORSE than 0.910985, simplified B-Free doesn't transfer to new generators
 blend27_degrank_sem.csv	PENDING	0.6*rank(stack_base27)+0.4*rank(stack_deg_rank) blend; validated, untested on LB
+stack_base30_sem.csv	PENDING	stack_base27 + sizeprior member (LOO size-lookup AUC=0.8127, 81% test size coverage); validated, untested on LB

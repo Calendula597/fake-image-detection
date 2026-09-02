@@ -221,6 +221,29 @@ def build_members(lab_y, test_ids, lab_df=None):
         print(f"[L1] meta AUC={roc_auc_score(lab_y, oof):.4f}")
         members.append(("meta", oof, te))
 
+        # 尺寸先验：生成器原生尺寸（512²/768²/1024² 等）在训练集上高度偏向 AI。
+        # LOO 查表防止自身泄漏；测试集未见尺寸回退到全局先验。
+        ym = train_m["label"].to_numpy() if "label" in train_m.columns else lab_y
+        assert len(ym) == len(lab_y)
+        tr_sizes = list(zip(train_m["width"].to_numpy(), train_m["height"].to_numpy()))
+        te_sizes = list(zip(test_m["width"].to_numpy(), test_m["height"].to_numpy()))
+        cnt = {}
+        for s, l in zip(tr_sizes, ym):
+            a, b = cnt.get(s, (0, 0))
+            cnt[s] = (a + (1 - int(l)), b + int(l))
+        oof = np.array([
+            (cnt[s][1] - l + 0.5) / (cnt[s][0] + cnt[s][1] - 1 + 1.0)
+            for s, l in zip(tr_sizes, ym)
+        ])
+        prior_p = float(ym.mean())
+        te = np.array([
+            (cnt[s][1] + 1.0) / (cnt[s][0] + cnt[s][1] + 2.0) if s in cnt else prior_p
+            for s in te_sizes
+        ])
+        n_unseen = sum(1 for s in te_sizes if s not in cnt)
+        print(f"[L1] sizeprior AUC={roc_auc_score(ym, oof):.4f} unseen_test_sizes={n_unseen}/{len(te_sizes)}")
+        members.append(("sizeprior", oof, te))
+
     # NPR 特征（像素域，低相关性）
     npr_s, npr_t = FEAT / "npr_256_sample.npy", FEAT / "npr_256_test.npy"
     if npr_s.exists() and npr_t.exists():
