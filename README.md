@@ -168,3 +168,38 @@ python validate_submission.py --submission outputs/submissions/submission.csv
 - 正类 `label=1` 表示 **AI 生成图片**。
 - 提交文件 `score` 为 AI 生成的置信度，范围 `[0, 1]`。
 - 原项目中的 Organika、UnivFD、DRCT 等实验性模型未完全移植，可按需添加。
+
+## 复赛（sem_image）新增管线（2026-09）
+
+> 详细实验记录见 `HANDOFF.md`。以下是复赛改进新增的可复现管线。
+
+### 多生成器扩增头（当前主力，stack_aug4）
+
+核心发现：冻结骨干 + 比赛 1000 张训练的头对**未见生成器**（ADM/Midjourney/VQDM）存在盲区。
+修复：用公开生成器假图 + COCO 真图扩增头部训练数据。
+
+```bash
+# 1. FLUX 假图生成（流匹配，GGUF Q8，~16s/张，断点续跑）
+python generate_flux.py --n 600 --out data_real/coco_val_ai_flux
+
+# 2. 提取扩增池特征（COCO 真 + 各生成器假 + 退化变体）
+python extract_aug.py --backbones cf384 clipH378 clipBigG dinoL --all-genimage
+python extract_aug.py --backbones cf384 clipH378 --deg        # data_real_deg/ 退化变体
+
+# 3. 堆叠（自动加载 aug_*_*.npy 训练 fluxaug_* 成员）
+python stack.py
+python submit.py --predictions outputs/predictions/ensemble_stack_only.csv \
+    --override-csv artifacts/label_override_sem.csv --out outputs/submissions/stack_aug4_sem.csv
+```
+
+扩增池（`data_real/`，label=1 除 coco 外）：GenImage（midjourney/wukong/glide/biggan/adm/vqdm 各 500，
+来自 `bitmind/GenImage_*`）、本地 FLUX.1-schnell 生成、SD1.4 img2img；`data_real_deg/` 为退化变体
+（JPEG q30-75 + 缩放回采 + 模糊）。`holdout_*` 目录是留出验证集，**绝不进训练**。
+
+### 其他新成员
+
+- `sizeprior`：尺寸查表先验（生成器原生尺寸偏 AI），`stack.py` 内置，OOF 0.81
+- `srm`：SRM/Bayar 高通残差取证特征，`python extract_srm.py`
+- 自建测试集评估：`python eval_selftest.py --backbone cf384`（COCO 真 vs 各生成器假）
+
+注意：`ImageDataset` 对打不开的图片会**静默回退黑图**——评估脚本务必传绝对路径。
