@@ -285,7 +285,7 @@ def build_members(lab_y, test_ids, lab_df=None):
             continue
         import torch
         from sklearn.model_selection import StratifiedKFold as SKF
-        from fake_image_detection.stacking import _predict_mlp, _train_mlp
+        from fake_image_detection.stacking import _predict_mlp, _train_mlp_muon
 
         Xs, Xt = pair
         X_aug = np.concatenate([X for _, X in aug_parts], 0)
@@ -304,12 +304,12 @@ def build_members(lab_y, test_ids, lab_df=None):
         for tr, va in skf.split(Xsn, lab_y):
             Xtr = np.concatenate([Xsn[tr], Xan], 0)
             ytr = np.concatenate([lab_y[tr], y_aug], 0)
-            head = _train_mlp(Xtr, ytr, device, seed=42)
+            head = _train_mlp_muon(Xtr, ytr, device, seed=42)
             oof[va] = _predict_mlp(head, Xsn[va], device)
-        te = fit_predict_mlp(
-            np.concatenate([Xs, X_aug], 0), np.concatenate([lab_y, y_aug], 0), Xt
-        )
-        print(f"[L1] fluxaug_{tag} AUC={roc_auc_score(lab_y, oof):.4f} (MLP, +{len(y_aug)} aug from {gen_names})")
+        Xtr_full = _norm(np.concatenate([Xs, X_aug], 0))
+        head = _train_mlp_muon(Xtr_full, np.concatenate([lab_y, y_aug], 0), device, seed=42)
+        te = _predict_mlp(head, _norm(Xt), device)
+        print(f"[L1] fluxaug_{tag} AUC={roc_auc_score(lab_y, oof):.4f} (Muon-MLP, +{len(y_aug)} aug from {gen_names})")
         members.append((f"fluxaug_{tag}", oof, te))
 
     # NPR 特征（像素域，低相关性）
