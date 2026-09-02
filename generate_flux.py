@@ -41,26 +41,38 @@ def load_pipeline():
 
     gguf_q8 = FLUX_DIR / "flux1-schnell-Q8_0.gguf"
     t5_gguf = FLUX_DIR / "t5-v1_1-xxl-encoder-Q4_K_M.gguf"
+    mirror = "Niansuh/FLUX.1-schnell"  # 非 gated diffusers 镜像
     transformer = FluxTransformer2DModel.from_single_file(
         str(gguf_q8),
+        config=mirror,
+        subfolder="transformer",
         quantization_config=GGUFQuantizationConfig(compute_dtype=torch.bfloat16),
         torch_dtype=torch.bfloat16,
     )
     text_encoder_2 = T5EncoderModel.from_pretrained(
-        "city96/t5-v1_1-xxl-encoder-gguf",
-        gguf_file=str(t5_gguf),
+        str(FLUX_DIR),  # 本地目录，config 从 GGUF 元数据读取
+        gguf_file=t5_gguf.name,
         torch_dtype=torch.bfloat16,
     )
-    text_encoder = CLIPTextModel.from_single_file(
-        str(FLUX_DIR / "clip_l.safetensors"), torch_dtype=torch.bfloat16
+    text_encoder = CLIPTextModel.from_pretrained(
+        mirror, subfolder="text_encoder", torch_dtype=torch.bfloat16
     )
-    vae = AutoencoderKL.from_single_file(str(FLUX_DIR / "ae.safetensors"), torch_dtype=torch.bfloat16)
+    vae = AutoencoderKL.from_pretrained(
+        mirror, subfolder="vae", torch_dtype=torch.bfloat16
+    )
+    from diffusers import FlowMatchEulerDiscreteScheduler
+    from huggingface_hub import hf_hub_download
+    import json
+    sched_cfg = hf_hub_download(mirror, "scheduler/config.json")
+    with open(sched_cfg) as f:
+        scheduler = FlowMatchEulerDiscreteScheduler.from_config(json.load(f))
     pipe = FluxPipeline.from_pretrained(
-        "black-forest-labs/FLUX.1-schnell",
+        mirror,
         transformer=transformer,
         text_encoder=text_encoder,
         text_encoder_2=text_encoder_2,
         vae=vae,
+        scheduler=scheduler,
         torch_dtype=torch.bfloat16,
     )
     pipe.enable_model_cpu_offload()
