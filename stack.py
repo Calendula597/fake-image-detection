@@ -263,6 +263,45 @@ def build_members(lab_y, test_ids, lab_df=None):
         print(f"[L1] sizeprior AUC={roc_auc_score(ym, oof):.4f} test_coarse_fallback={n_coarse}/{len(te_sizes)}")
         members.append(("sizeprior", oof, te))
 
+    # FLUX 扩增头：[1000 训练图 + COCO真(0) + FLUX假(1)] 上训练检测头。
+    # 对齐测试集的新生代流匹配生成器（NTIRE 2026 冠军策略的本地版）。
+    # OOF：每个 fold 训练 = 训练折 + 全部 aug 样本（aug 永不进验证折，无泄漏）。
+    for tag, feat_tag, size in (("cf384", "commfor_cf384", 384), ("clipH378", "clipH378", 378)):
+        coco_p, flux_p = FEAT / f"aug_{tag}_coco.npy", FEAT / f"aug_{tag}_flux.npy"
+        pair = (
+            load_features(FEAT, feat_tag, size, "crop", "sample"),
+            load_features(FEAT, feat_tag, size, "crop", "test"),
+        )
+        if not coco_p.exists() or not flux_p.exists() or pair[0] is None or pair[1] is None:
+            continue
+        import torch
+        from sklearn.model_selection import StratifiedKFold as SKF
+        from fake_image_detection.stacking import _predict_mlp, _train_mlp
+
+        Xs, Xt = pair
+        X_coco = np.load(coco_p).astype(np.float32)
+        X_flux = np.load(flux_p).astype(np.float32)
+        X_aug = np.concatenate([X_coco, X_flux], 0)
+        y_aug = np.concatenate([np.zeros(len(X_coco)), np.ones(len(X_flux))])
+
+        def _norm(X):
+            return X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-8)
+
+        Xsn, Xan = _norm(Xs), _norm(X_aug)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        skf = SKF(5, shuffle=True, random_state=42)
+        oof = np.zeros(len(lab_y), dtype=np.float64)
+        for tr, va in skf.split(Xsn, lab_y):
+            Xtr = np.concatenate([Xsn[tr], Xan], 0)
+            ytr = np.concatenate([lab_y[tr], y_aug], 0)
+            head = _train_mlp(Xtr, ytr, device, seed=42)
+            oof[va] = _predict_mlp(head, Xsn[va], device)
+        te = fit_predict_mlp(
+            np.concatenate([Xs, X_aug], 0), np.concatenate([lab_y, y_aug], 0), Xt
+        )
+        print(f"[L1] fluxaug_{tag} AUC={roc_auc_score(lab_y, oof):.4f} (MLP, +{len(y_aug)} aug)")
+        members.append((f"fluxaug_{tag}", oof, te))
+
     # NPR 特征（像素域，低相关性）
     npr_s, npr_t = FEAT / "npr_256_sample.npy", FEAT / "npr_256_test.npy"
     if npr_s.exists() and npr_t.exists():
