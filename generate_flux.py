@@ -35,7 +35,7 @@ GEN_SIZES = [
 ]
 
 
-def load_pipeline():
+def load_pipeline(no_offload: bool = False):
     from diffusers import AutoencoderKL, FluxPipeline, FluxTransformer2DModel, GGUFQuantizationConfig
     from transformers import CLIPTextModel, T5EncoderModel
 
@@ -75,7 +75,10 @@ def load_pipeline():
         scheduler=scheduler,
         torch_dtype=torch.bfloat16,
     )
-    pipe.enable_model_cpu_offload()
+    if no_offload:
+        pipe.to("cuda")  # Q8 transformer ~13G + T5 Q4 ~3G，24G 显存可全放 GPU，速度快数倍
+    else:
+        pipe.enable_model_cpu_offload()
     return pipe
 
 
@@ -105,6 +108,7 @@ def main():
     ap.add_argument("--out", default="data_real/coco_val_ai_flux")
     ap.add_argument("--jpeg-quality", type=int, default=0, help=">0 则按该质量重编码；0=随机 75-100")
     ap.add_argument("--start", type=int, default=0, help="跳过前 start 条（断点续跑）")
+    ap.add_argument("--no-offload", action="store_true", help="全部放 GPU（显存够时显著提速）")
     args = ap.parse_args()
 
     out_dir = CR / args.out
@@ -114,7 +118,7 @@ def main():
     caps = load_coco_captions(args.start + args.n, seed=args.seed)
     caps = caps.iloc[args.start:].reset_index(drop=True)
 
-    pipe = load_pipeline()
+    pipe = load_pipeline(no_offload=args.no_offload)
     manifest = []
     for i, row in caps.iterrows():
         name = f"flux_{args.start + i:05d}.jpg"
