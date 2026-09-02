@@ -38,3 +38,4 @@ lb_stack_deg	0.910284	lb	stack_deg (degradation-matched L2) - NO improvement ove
 bfree	0.8942	oof	simplified B-Free debiased head, cross-gen generalization confirmed
 exp22	0.992344	oof	29-member stack (+bfree), L1-rank +0.0005
 bfree_multi	0.8936	oof	multi-strength fakes don't improve bfree head (caps ~0.894)
+bfree_ft	0.8928	oof	B-Free full finetune = LR head, caps ~0.894 cross-gen (SD v1-4 only)
