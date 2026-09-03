@@ -58,3 +58,6 @@ stack_aug7_l1rank_sem.csv	PENDING	aug7 members, L1-rank blend (no L2); diversity
 stack_aug8_sem.csv	PENDING	35 members, aug pool 10100 samples (+SDXL + deg_sdxl, 19 splits); SDXL was already solved (0.9997); L2-blend OOF 0.992764; validated, untested on LB
 stack_aug9_sem.csv	PENDING	FINAL: 35 members, aug pool 10700 samples/21 splits (+JourneyDB + deg); L2-blend OOF 0.992240; validated, untested on LB
 stack_r1ps_sem.csv	PENDING	35 members, fluxaug heads 30700 samples (+20000 round1-test soft labels from prior378 predictions); L2-blend OOF 0.993088 (slightly flattered by transductive soft labels); validated, untested on LB
+stack_r1ps_sem.csv	0.908262	20k round1 soft labels HURT (-0.006 vs aug9): easy-distribution dominates head training; verified first/ == prior378 file (no data mistake)
+stack_r1ps3k_sem.csv	PENDING	3k stratified soft labels; head OOF dropped (0.9216) - likely MLP seed variance; low expectation
+blend_aug9_base32_sem.csv	PENDING	0.6*rank(aug9)+0.4*rank(base32), blend of two LB-validated bests; validated
