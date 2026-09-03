@@ -279,6 +279,7 @@ def build_members(lab_y, test_ids, lab_df=None):
         aug_parts = [
             (p.stem.replace(f"aug_{tag}_", ""), np.load(p).astype(np.float32))
             for p in sorted(FEAT.glob(f"aug_{tag}_*.npy"))
+            if not p.stem.endswith("_labels")
         ]
         aug_parts = [(n, X) for n, X in aug_parts if len(X) > 0]
         if pair[0] is None or pair[1] is None or len(aug_parts) < 2:
@@ -289,9 +290,14 @@ def build_members(lab_y, test_ids, lab_df=None):
 
         Xs, Xt = pair
         X_aug = np.concatenate([X for _, X in aug_parts], 0)
-        y_aug = np.concatenate([
-            np.zeros(len(X)) if "coco" in n else np.ones(len(X)) for n, X in aug_parts
-        ])
+
+        def _part_labels(n, X):
+            lab_p = FEAT / f"aug_{tag}_{n}_labels.npy"
+            if lab_p.exists():  # 软标签（如初赛测试集 r1ps）
+                return np.load(lab_p).astype(np.float32)
+            return np.zeros(len(X), dtype=np.float32) if "coco" in n else np.ones(len(X), dtype=np.float32)
+
+        y_aug = np.concatenate([_part_labels(n, X) for n, X in aug_parts])
         gen_names = [n for n, _ in aug_parts]
 
         def _norm(X):
