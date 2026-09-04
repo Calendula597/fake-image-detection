@@ -165,3 +165,10 @@
 - `first/image_submission_example.csv` 与 prior378 预测逐行一致（无数据错误）
 - 软标签方向盖棺：20k 和 3k 剂量都有害（r1ps3k 把头 OOF 拖低 0.03），已移出池（.bak）
 - 候选 `stack_aug9p_sem.csv`：纯净 aug9 + 5 种子平均 Muon 头（FLUXAUG_SEEDS=5 环境变量控制），头部训练方差已消除
+
+## 09-04 稳态化链 + HunyuanDiT
+
+- 消融链候选（每级一个机制）：`stack_aug9p`（aug9+扩增头5种子）→ `stack_aug10t`（+扩增头TTA）→ `stack_aug11s`（+全成员5种子，MLP_SEEDS 环境变量）→ `stack_aug12t`（+主成员TTA，extract_flip.py）。建议提交顺序 aug9p → aug12t → aug10t
+- **规律确认：所有开源生成器（SD/SDXL/FLUX/ADM/glide/BigGAN/VQDM/wukong/MJ/HunyuanDiT）伪影都可被堆叠检测（无 aug 也 0.99+），未知仅在商业闭源模型**
+- FLUX 权重已删（600 张已入池），换 HunyuanDiT-v1.2（腾讯开源，朱雀出题方的最近代理，17s/张 offload）生成 500 张中；早期评估 cf384=1.0/clipH378=0.9976，非盲区
+- 待办：hydit 满 500 → deg 变体 + 提特征 → `stack_aug13h` 候选
