@@ -127,24 +127,32 @@ def _train_mlp_muon(Xtr, ytr, device, epochs=60, hidden=256, lr_adam=1e-3, lr_mu
 
 
 def oof_mlp(X: np.ndarray, y: np.ndarray, seed: int = 42) -> np.ndarray:
+    import os
     import torch
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     X = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-8)
+    n_seeds = int(os.environ.get("MLP_SEEDS", "1"))
+    seeds = [seed + 1000 * s for s in range(n_seeds)]
     skf = StratifiedKFold(5, shuffle=True, random_state=seed)
     oof = np.zeros(len(y), dtype=np.float64)
     for tr, va in skf.split(X, y):
-        head = _train_mlp(X[tr], y[tr], device, seed=seed)
-        oof[va] = _predict_mlp(head, X[va], device)
+        preds = [_predict_mlp(_train_mlp(X[tr], y[tr], device, seed=sd), X[va], device) for sd in seeds]
+        oof[va] = np.mean(preds, axis=0)
     return oof
 
 
 def fit_predict_mlp(Xtr, y, Xte, seed: int = 42):
+    import os
     import torch
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     Xtr = Xtr / (np.linalg.norm(Xtr, axis=1, keepdims=True) + 1e-8)
     Xte = Xte / (np.linalg.norm(Xte, axis=1, keepdims=True) + 1e-8)
-    head = _train_mlp(Xtr, y, device, seed=seed)
-    return _predict_mlp(head, Xte, device)
+    n_seeds = int(os.environ.get("MLP_SEEDS", "1"))
+    preds = [
+        _predict_mlp(_train_mlp(Xtr, y, device, seed=seed + 1000 * s), Xte, device)
+        for s in range(n_seeds)
+    ]
+    return np.mean(preds, axis=0)
 
 
 def nested_stack_oof(M: np.ndarray, y: np.ndarray, seed: int = 2026) -> Dict[str, np.ndarray]:

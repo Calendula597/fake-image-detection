@@ -65,3 +65,4 @@ blend_aug9_base32_sem.csv	0.91385	rank blend of aug9+base32 - slightly BELOW aug
 stack_aug9s_sem.csv	SKIP	aug9+r1ps3k, 5 seeds; r1ps3k drags head OOF -0.03 (soft labels bad even at 3k dose) - do not submit
 stack_aug9p_sem.csv	PENDING	PURE aug9 with 5-seed averaged Muon heads (10700 pool, no soft labels); head OOF healthy 0.9605/0.9600/0.9456/0.8905; validated
 stack_aug10t_sem.csv	PENDING	aug9p + TTA (hflip test features averaged for all 4 fluxaug heads); OOF unchanged (TTA only affects test preds); validated
+stack_aug11s_sem.csv	PENDING	aug10t + 5-seed averaging on ALL MLP member heads (MLP_SEEDS=5); OOF stable/slightly better (cf384 0.9600, clipH378 0.9690); L2-blend 0.992366; validated
