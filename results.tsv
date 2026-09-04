@@ -69,3 +69,5 @@ stack_aug11s_sem.csv	PENDING	aug10t + 5-seed averaging on ALL MLP member heads (
 stack_aug12t_sem.csv	PENDING	aug11s + TTA flip on main CF/CLIP/DINO crop members too (all strongest members now flip-averaged); validated
 stack_aug13h_sem.csv	PENDING	aug12t + HunyuanDiT (500 imgs + deg variants, pool 11700/23 splits); heads OOF stable (0.9606/0.9606/0.9462/0.8912); validated
 stack_aug9p_sem.csv	0.913397	5-seed averaging on fluxaug heads: -0.0007 vs aug9, no benefit; aug9 (single-seed) still best
+stack_aug13h1_sem.csv	PENDING	clean isolation: aug9 + HunyuanDiT (single-seed, NO TTA, pool 11700); validated
+stack_aug10t1_sem.csv	PENDING	clean isolation: aug9 + TTA flip only (single-seed, pool 11700 incl hydit); validated
