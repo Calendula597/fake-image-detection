@@ -61,3 +61,4 @@ stack_r1ps_sem.csv	PENDING	35 members, fluxaug heads 30700 samples (+20000 round
 stack_r1ps_sem.csv	0.908262	20k round1 soft labels HURT (-0.006 vs aug9): easy-distribution dominates head training; verified first/ == prior378 file (no data mistake)
 stack_r1ps3k_sem.csv	PENDING	3k stratified soft labels; head OOF dropped (0.9216) - likely MLP seed variance; low expectation
 blend_aug9_base32_sem.csv	PENDING	0.6*rank(aug9)+0.4*rank(base32), blend of two LB-validated bests; validated
+blend_aug9_base32_sem.csv	0.91385	rank blend of aug9+base32 - slightly BELOW aug9 alone (0.914094); aug9 remains the strongest single artifact, blending dilutes
