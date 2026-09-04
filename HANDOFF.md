@@ -158,3 +158,10 @@
 - LB: stack_base32=**0.912225**（sizeprior+SRM 有效）、stack_aug7_l1rank=0.905436（L1-rank 再次确认不如 L2）、**stack_aug9=0.914094 新纪录**（+0.0031，多生成器扩增在真实测试集验证成立）
 - 用户建议的初赛软标签已实现：2 万初赛测试集 + prior378 预测作软标签（r1ps 部件，id 已验证对齐），fluxaug 头训练样本 30700
 - 候选 `stack_r1ps_sem.csv`：L2-blend OOF 0.993088（注意软标签来自在同 1000 张上训练的 prior378，OOF 略虚高）
+
+## 09-04 LB 第四批 + 软标签方向盖棺
+
+- LB: stack_r1ps=0.908262（-0.006，软标签伤害）、blend_aug9_base32=0.91385（-0.0002，融合稀释）。**aug9=0.914094 仍是单工件最强**
+- `first/image_submission_example.csv` 与 prior378 预测逐行一致（无数据错误）
+- 软标签方向盖棺：20k 和 3k 剂量都有害（r1ps3k 把头 OOF 拖低 0.03），已移出池（.bak）
+- 候选 `stack_aug9p_sem.csv`：纯净 aug9 + 5 种子平均 Muon 头（FLUXAUG_SEEDS=5 环境变量控制），头部训练方差已消除

@@ -305,17 +305,23 @@ def build_members(lab_y, test_ids, lab_df=None):
 
         Xsn, Xan = _norm(Xs), _norm(X_aug)
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        import os
+        n_seeds = int(os.environ.get("FLUXAUG_SEEDS", "1"))
+        seeds = [42 + 1000 * s for s in range(n_seeds)]
         skf = SKF(5, shuffle=True, random_state=42)
         oof = np.zeros(len(lab_y), dtype=np.float64)
         for tr, va in skf.split(Xsn, lab_y):
             Xtr = np.concatenate([Xsn[tr], Xan], 0)
             ytr = np.concatenate([lab_y[tr], y_aug], 0)
-            head = _train_mlp_muon(Xtr, ytr, device, seed=42)
-            oof[va] = _predict_mlp(head, Xsn[va], device)
+            preds = [_predict_mlp(_train_mlp_muon(Xtr, ytr, device, seed=sd), Xsn[va], device) for sd in seeds]
+            oof[va] = np.mean(preds, axis=0)
         Xtr_full = _norm(np.concatenate([Xs, X_aug], 0))
-        head = _train_mlp_muon(Xtr_full, np.concatenate([lab_y, y_aug], 0), device, seed=42)
-        te = _predict_mlp(head, _norm(Xt), device)
-        print(f"[L1] fluxaug_{tag} AUC={roc_auc_score(lab_y, oof):.4f} (Muon-MLP, +{len(y_aug)} aug from {gen_names})")
+        y_full = np.concatenate([lab_y, y_aug], 0)
+        te = np.mean([
+            _predict_mlp(_train_mlp_muon(Xtr_full, y_full, device, seed=sd), _norm(Xt), device)
+            for sd in seeds
+        ], axis=0)
+        print(f"[L1] fluxaug_{tag} AUC={roc_auc_score(lab_y, oof):.4f} (Muon-MLP x{n_seeds}seed, +{len(y_aug)} aug from {gen_names})")
         members.append((f"fluxaug_{tag}", oof, te))
 
     # NPR 特征（像素域，低相关性）
