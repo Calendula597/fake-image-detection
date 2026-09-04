@@ -58,6 +58,16 @@ def _fit_mlp_deg(Xs, y, Xt, deg_paths):
     return fit_predict_mlp(X_aug, y_aug, Xt)
 
 
+def _tta_flip(te, Xs, y, Xt, deg_paths, flip_path):
+    """水平翻转 TTA：有翻转测试特征时，测试预测取 [原图 + 翻转] 平均。"""
+    if not flip_path.exists():
+        return te
+    Xt_flip = np.load(flip_path).astype(np.float32)
+    assert len(Xt_flip) == len(Xt), f"flip features mismatch: {flip_path}"
+    te_flip = _fit_mlp_deg(Xs, y, Xt_flip, deg_paths)
+    return 0.5 * te + 0.5 * te_flip
+
+
 def build_members(lab_y, test_ids, lab_df=None):
     """从 features/ 构建 Level-1 成员。"""
     members = []
@@ -73,7 +83,9 @@ def build_members(lab_y, test_ids, lab_df=None):
                 continue
             Xs, Xt = pair
             oof = oof_mlp(Xs, lab_y)
-            te = _fit_mlp_deg(Xs, lab_y, Xt, _deg_paths(f"commfor_{tag}", size, crop))
+            deg = _deg_paths(f"commfor_{tag}", size, crop)
+            te = _fit_mlp_deg(Xs, lab_y, Xt, deg)
+            te = _tta_flip(te, Xs, lab_y, Xt, deg, FEAT / f"commfor_{tag}_{size}_{crop}_testflip.npy")
             print(f"[L1] CF {tag}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP,deg)")
             members.append((f"cf_{tag}_{crop}", oof, te))
 
@@ -89,7 +101,9 @@ def build_members(lab_y, test_ids, lab_df=None):
                     continue
                 Xs, Xt = pair
                 oof = oof_mlp(Xs, lab_y)
-                te = _fit_mlp_deg(Xs, lab_y, Xt, _deg_paths(tag, size, crop))
+                deg = _deg_paths(tag, size, crop)
+                te = _fit_mlp_deg(Xs, lab_y, Xt, deg)
+                te = _tta_flip(te, Xs, lab_y, Xt, deg, FEAT / f"{tag}_{size}_{crop}_testflip.npy")
                 print(f"[L1] {tag}_{size}_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP,deg)")
                 members.append((f"{tag}_{size}_{crop}", oof, te))
 
@@ -104,7 +118,9 @@ def build_members(lab_y, test_ids, lab_df=None):
                 continue
             Xs, Xt = pair
             oof = oof_mlp(Xs, lab_y)
-            te = _fit_mlp_deg(Xs, lab_y, Xt, _deg_paths(tag, 224, crop))
+            deg = _deg_paths(tag, 224, crop)
+            te = _fit_mlp_deg(Xs, lab_y, Xt, deg)
+            te = _tta_flip(te, Xs, lab_y, Xt, deg, FEAT / f"{tag}_224_{crop}_testflip.npy")
             print(f"[L1] {tag}_224_{crop} AUC={roc_auc_score(lab_y, oof):.4f} (MLP,deg)")
             members.append((f"{tag}_224_{crop}", oof, te))
 
