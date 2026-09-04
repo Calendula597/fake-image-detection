@@ -317,10 +317,14 @@ def build_members(lab_y, test_ids, lab_df=None):
             oof[va] = np.mean(preds, axis=0)
         Xtr_full = _norm(np.concatenate([Xs, X_aug], 0))
         y_full = np.concatenate([lab_y, y_aug], 0)
-        te = np.mean([
-            _predict_mlp(_train_mlp_muon(Xtr_full, y_full, device, seed=sd), _norm(Xt), device)
-            for sd in seeds
-        ], axis=0)
+        heads = [_train_mlp_muon(Xtr_full, y_full, device, seed=sd) for sd in seeds]
+        Xtn = _norm(Xt)
+        te = np.mean([_predict_mlp(h, Xtn, device) for h in heads], axis=0)
+        flip_p = FEAT / f"{feat_tag}_{size}_crop_testflip.npy"
+        if flip_p.exists():  # TTA：水平翻转测试特征取平均
+            Xtf = _norm(np.load(flip_p).astype(np.float32))
+            te = 0.5 * te + 0.5 * np.mean([_predict_mlp(h, Xtf, device) for h in heads], axis=0)
+            print(f"   TTA flip applied for {tag}")
         print(f"[L1] fluxaug_{tag} AUC={roc_auc_score(lab_y, oof):.4f} (Muon-MLP x{n_seeds}seed, +{len(y_aug)} aug from {gen_names})")
         members.append((f"fluxaug_{tag}", oof, te))
 
