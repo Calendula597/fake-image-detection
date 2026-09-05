@@ -27,6 +27,8 @@ def main():
     ap.add_argument("--seed", type=int, default=2027)
     ap.add_argument("--out", default="data_real/hydit")
     ap.add_argument("--start", type=int, default=0)
+    ap.add_argument("--zh-frac", type=float, default=0.0,
+                    help="使用中文 prompt 的比例（读 data_real/hydit_zh_prompts.json）")
     args = ap.parse_args()
 
     from diffusers import HunyuanDiTPipeline
@@ -37,6 +39,21 @@ def main():
 
     caps = load_coco_captions(args.start + args.n, seed=args.seed)
     caps = caps.iloc[args.start:].reset_index(drop=True)
+
+    zh_prompts = {}
+    if args.zh_frac > 0:
+        import json
+        zh_path = CR / "data_real" / "hydit_zh_prompts.json"
+        if zh_path.exists():
+            zh_prompts = json.loads(zh_path.read_text())
+            print(f"loaded {len(zh_prompts)} zh prompts")
+
+    def _prompt(global_idx, caption):
+        if zh_prompts and random.random() < args.zh_frac:
+            zh = zh_prompts.get(str(global_idx))
+            if zh:
+                return zh
+        return caption
 
     pipe = HunyuanDiTPipeline.from_pretrained(
         "Tencent-Hunyuan/HunyuanDiT-v1.2-Diffusers", torch_dtype=torch.float16
@@ -54,7 +71,7 @@ def main():
         w, h = max(256, round(w / 16) * 16), max(256, round(h / 16) * 16)
         gen = torch.Generator(device="cuda").manual_seed(args.seed + args.start + i)
         img = pipe(
-            prompt=row["caption"],
+            prompt=_prompt(args.start + i, row["caption"]),
             width=w,
             height=h,
             num_inference_steps=args.steps,
