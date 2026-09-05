@@ -75,3 +75,4 @@ stack_aug10t1_sem.csv	0.916478	aug9+hydit+TTA: +0.0024; TTA adds nothing on top 
 stack_aug13h1_sem.csv	0.916647	NEW BEST: aug9+HunyuanDiT (clean): +0.0026 - Tencent-generator coverage is THE winning axis
 stack_aug14h_sem.csv	PENDING	aug13h1 config + 1000 more hydit (1500 total, 40% Chinese prompts, pool 13700); heads OOF 0.9612/0.9604/0.9455/0.8972; validated
 stack_aug14h_sem.csv	0.916228	hydit 1500 (3x data, zh prompts): -0.0004 vs aug13h1 - hydit axis CAPPED at 500 imgs; aug13h1 remains best
+blend_13h1_10t1_sem.csv	PENDING	0.6*rank(aug13h1)+0.4*rank(aug10t1): blend of the two >0.916 submissions; validated
