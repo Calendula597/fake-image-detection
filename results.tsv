@@ -71,3 +71,5 @@ stack_aug13h_sem.csv	PENDING	aug12t + HunyuanDiT (500 imgs + deg variants, pool 
 stack_aug9p_sem.csv	0.913397	5-seed averaging on fluxaug heads: -0.0007 vs aug9, no benefit; aug9 (single-seed) still best
 stack_aug13h1_sem.csv	PENDING	clean isolation: aug9 + HunyuanDiT (single-seed, NO TTA, pool 11700); validated
 stack_aug10t1_sem.csv	PENDING	clean isolation: aug9 + TTA flip only (single-seed, pool 11700 incl hydit); validated
+stack_aug10t1_sem.csv	0.916478	aug9+hydit+TTA: +0.0024; TTA adds nothing on top of hydit
+stack_aug13h1_sem.csv	0.916647	NEW BEST: aug9+HunyuanDiT (clean): +0.0026 - Tencent-generator coverage is THE winning axis
