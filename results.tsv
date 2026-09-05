@@ -73,3 +73,4 @@ stack_aug13h1_sem.csv	PENDING	clean isolation: aug9 + HunyuanDiT (single-seed, N
 stack_aug10t1_sem.csv	PENDING	clean isolation: aug9 + TTA flip only (single-seed, pool 11700 incl hydit); validated
 stack_aug10t1_sem.csv	0.916478	aug9+hydit+TTA: +0.0024; TTA adds nothing on top of hydit
 stack_aug13h1_sem.csv	0.916647	NEW BEST: aug9+HunyuanDiT (clean): +0.0026 - Tencent-generator coverage is THE winning axis
+stack_aug14h_sem.csv	PENDING	aug13h1 config + 1000 more hydit (1500 total, 40% Chinese prompts, pool 13700); heads OOF 0.9612/0.9604/0.9455/0.8972; validated
