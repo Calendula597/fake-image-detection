@@ -77,3 +77,6 @@ stack_aug14h_sem.csv	PENDING	aug13h1 config + 1000 more hydit (1500 total, 40% C
 stack_aug14h_sem.csv	0.916228	hydit 1500 (3x data, zh prompts): -0.0004 vs aug13h1 - hydit axis CAPPED at 500 imgs; aug13h1 remains best
 blend_13h1_10t1_sem.csv	PENDING	0.6*rank(aug13h1)+0.4*rank(aug10t1): blend of the two >0.916 submissions; validated
 stack_aug15k_sem.csv	PENDING	aug13h1 config + Kolors 500 (pool 14700/27 splits, 13 generator families); heads OOF 0.9614/0.9610/0.9475/0.8970; L2-blend 0.992630; validated
+stack_aug12t_sem.csv	0.913184	stabilization full package (seeds+TTA): no gain
+stack_aug15k_sem.csv	0.91429	Kolors 500: no gain vs aug13h1 (0.916647) - proxy coverage saturated
+blend_13h1_10t1_sem.csv	0.916623	blend of two best: equals aug13h1, no gain - PLATEAU confirmed at ~0.9166
