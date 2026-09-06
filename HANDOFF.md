@@ -184,3 +184,13 @@
 - stack_aug14h=0.916228 < aug13h1=0.916647：**混元轴见顶于 500 张**（1500+中文 prompt 无增益）
 - 当前最好：**stack_aug13h1_sem.csv = 0.916647**
 - 明日方向：① Kolors（快手可灵系代理）② blend(aug13h1, aug10t1) ③ 新机制
+
+## 09-06 顶会调研与执行（plateau 0.9166 后）
+
+- LB: aug12t=0.913184、aug15k=0.91429、blend=0.916623——**平台期确认，最好仍 aug13h1=0.916647**
+- 调研结论：领域已收敛到我们的范式（DINOv3+多生成器数据+退化模拟+集成），无范式遗漏
+- ❌ SAFE checkpoint（KDD2025）：自测 0.26-0.59，证伪
+- ⚠️ DINO-MAC（CVPRW2026 冠军头）：MAC 特征 OOF 0.9129 < 原 dinoL 0.9204，收益存疑；dinomacL 特征已提取备用（extract_dinomac.py）
+- 🔥 **关键发现：T2I-CoReBench-Images（lioooox，非 gated）含 40 个最新生成器各 4320 张，包括 Seedream3/4/4.5、Nano Banana、GPT-Image、imagen-4、HunyuanImage-3.0、Qwen-Image 等商业闭源模型**——商业数据的免费替代。hf-mirror 大文件慢 → aria2c -x8 恢复 8MB/s
+- 进行中：scripts/fetch_corebench.sh 队列下载 10 个模型（Seedream-3/Nano-Banana/imagen-4/HunyuanImage-3.0/GPT-Image-1.5/Z-Image/LongCat/HiDream/SD3.5L/Qwen-Image），每个抽 400 张
+- 磁盘注意：/dev/md0 实为 50G（非 70G），大压缩包（Seedream-4 21.5G）放不下；临时文件用系统盘 /tmp
