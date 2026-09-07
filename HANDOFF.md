@@ -194,3 +194,10 @@
 - 🔥 **关键发现：T2I-CoReBench-Images（lioooox，非 gated）含 40 个最新生成器各 4320 张，包括 Seedream3/4/4.5、Nano Banana、GPT-Image、imagen-4、HunyuanImage-3.0、Qwen-Image 等商业闭源模型**——商业数据的免费替代。hf-mirror 大文件慢 → aria2c -x8 恢复 8MB/s
 - 进行中：scripts/fetch_corebench.sh 队列下载 10 个模型（Seedream-3/Nano-Banana/imagen-4/HunyuanImage-3.0/GPT-Image-1.5/Z-Image/LongCat/HiDream/SD3.5L/Qwen-Image），每个抽 400 张
 - 磁盘注意：/dev/md0 实为 50G（非 70G），大压缩包（Seedream-4 21.5G）放不下；临时文件用系统盘 /tmp
+
+## 09-07 CoReBench 商业模型难度地图（假设推翻）
+
+- 比赛训练头（无 aug）对 CoReBench 商业模型全部 0.98+：Seedream-3 0.996/0.998、HunyuanImage-3.0 0.999、GPT-Image-1.5 0.994/0.998、Nano-Banana 0.983/0.996、imagen-4 0.984/0.997、Z-Image 0.983/0.998（cf384/clipH378）
+- **"商业生成器是盲区"假设被推翻**——连 Seedream/混元3.0/GPT-Image 都能检出
+- 新焦点：2026.02 基准（arXiv:2602.07814）指出 **FLUX.1-dev / Firefly v4 / MJ v7 击败几乎所有公开检测器（18-30% acc）**。我们只测过 FLUX-schnell（4步蒸馏），dev 系（50步引导）完全不同。CoReBench 有 FLUX.1-dev/FLUX.2-dev/FLUX.1-Krea-dev，下载中
+- 若 FLUX-dev 也是 0.98+，则剩余解释只有：① 真实侧分布偏移（比赛真实图被判 AI，COCO 自测覆盖不到这个失败模式）② 比赛对抗退化强度远超我们的 deg 模拟 ③ MJ v7/Firefly/Seedream-4（未测）

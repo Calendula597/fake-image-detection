@@ -4,7 +4,7 @@
 set -u
 BASE="https://hf-mirror.com/datasets/lioooox/T2I-CoReBench-Images/resolve/main"
 DEST_ROOT=/root/autodl-tmp/fake-image-detection/data_real
-MODELS="Seedream-3 Nano-Banana imagen-4 HunyuanImage-3.0 GPT-Image-1.5 Z-Image LongCat-Image HiDream-I1 SD-3.5-Large Qwen-Image"
+MODELS="FLUX.1-dev FLUX.2-dev FLUX.1-Krea-dev HiDream-I1 SD-3.5-Large Qwen-Image LongCat-Image"
 for m in $MODELS; do
   out="$DEST_ROOT/corebench_$(echo "$m" | tr '.-' '__')"
   n=$(find "$out" -type f 2>/dev/null | wc -l)
