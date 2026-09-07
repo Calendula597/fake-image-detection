@@ -221,3 +221,6 @@
 - stack_aug18x=0.915349、stack_aug17d=0.912255 均 < aug13h1=0.916647——**重度退化训练（deg2/deg3/deg4/鲁棒剔除）在实际测试集上有害**，比赛退化强度 < 2-3 轮 q25-65 模拟
 - 相对排序：aug18x > aug17d 说明适度向鲁棒靠拢仍有价值，但 aug13h1 的"混元+温和退化"配方仍最优
 - 下一步：① aug19c = aug13h1 配方 + 12 个 CoReBench 商业模型入池（温和退化）② 二轮顶会调研（HF/ModelScope 可下载检测器）
+- RPTC/PatchCraft（sidbench，CVPR'24 频域补丁 CNN，零样本）：COCO 自测 0.63-0.98（商业模型 0.86-0.98，hydit 0.63），显著弱于现有堆叠——**不入池**（弱成员稀释 L2）
+- sidbench（dkarageo，HF 非 gated）是 20+ 预训练检测器仓库，已验证可达
+- 二轮调研其他候选：CoDE（DINOv2+sklearn，D³ 9.2M 训练）待试；Ivy-Fake（Qwen2.5-VL-3B 微调）存疑；RAID checkpoints 太大；RINE 是 CLIP 探针变体（边际）
