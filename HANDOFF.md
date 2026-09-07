@@ -1,226 +1,121 @@
-# 复赛改进 — 交接文档（更新至 2026-09-02）
+# 复赛改进 — 交接文档（更新至 2026-09-07，全量重写版）
 
 > 给明天的自己 / 新会话：本文档包含恢复进度所需的全部状态。
 > 恢复对话：`cd /root/autodl-tmp && kimi --continue`，然后 `/goal resume`。
 
-## 任务
+## 一、任务与赛事
 
-琶洲算法大赛 · AI 生成图像检测（**复赛**，二分类，指标 AUC，复赛测试集含对抗样本）。
-目标：复赛 LB 越高越好（用户期望 0.99，但实测该对抗集极难）。每次改动都 git commit。
-评判（claim.png）：复赛 `Score = e^(4·AUC_text) + e^(4·AUC_image)`，指数加权，我只做 image。
+- **赛事**：第五届琶洲算法大赛"湾区杯"AI生成内容鉴别挑战赛（2026），task2 图片检测，出题方 = **腾讯朱雀实验室**（subagent 调研确认，官方页 aicompetition-pz.com/topic_detail/41）。复赛进行中，无公开题解。
+- **指标**：ROC-AUC（复赛总分 = e^(4·AUC_text) + e^(4·AUC_image)，我只做 image）。
+- **测试集特点**（官方说明 + 实测推断）：覆盖扩散模型/GAN/流匹配；含压缩、裁剪、滤镜、**社交平台多层转发**对抗；假图大概率含商业生成器（混元/即梦 Seedream/可灵/MJ/DALL·E/FLUX 系）。
+- **提交**：`id,score` 20000 行，score∈[0,1]，1=AI。**每天仅 3 次机会，只能用户手动上传**。
 
-## 数据（关键！）
+## 二、环境与数据路径
 
-- 训练集：`/root/autodl-tmp/Detector/dateset/sem_image/data/image_sample_data`（1000 张，500真/500AI）
-- 测试集：`/root/autodl-tmp/Detector/dateset/sem_image/data/image_test`（20000 张，复赛对抗性测试集）
-- 提交格式：`id,score`，20000 行，score∈[0,1]，1=AI生成。**每天 3 次提交，手动上传**
-- 网络：huggingface.co 被墙 → 用 `export HF_ENDPOINT=https://hf-mirror.com`；github 超时 → `https://gh-proxy.com/https://github.com`
-- **数据对齐 bug（已修复）**：原项目特征基于初赛 image_data，比赛用复赛 sem_image，文件名同但图不同。所有特征必须在 sem_image 上重新提取。
+- 代码根：`/root/autodl-tmp/fake-image-detection/`（venv：先 `source .venv/bin/activate`）
+- 训练集：`/root/autodl-tmp/Detector/dateset/sem_image/data/image_sample_data`（1000 张 500真/500AI）
+- 测试集：`/root/autodl-tmp/Detector/dateset/sem_image/data/image_test`（20000 张无标签）
+- **网络**：huggingface.co 被墙 → 必须 `export HF_ENDPOINT=https://hf-mirror.com`；github 走 `https://gh-proxy.com/https://github.com`；**Google Drive 不可达**（SPAI/Effort/RINE 等权重死在此）；ModelScope 无检测器权重。大文件用 `aria2c -x 8`（hf-mirror 单流会被限到 60KB/s，多连接恢复 5-8MB/s）。xet 后端偶发 401 → `export HF_HUB_DISABLE_XET=1`。
+- **磁盘**（易踩坑）：系统盘 `/` 仅 30G，数据盘 `/dev/md0` **实为 50G**（不是 70G）。HF 缓存已迁到数据盘 `/root/autodl-tmp/hf_home`，`~/.cache/huggingface` 逐条目软链（脚本 `scripts/migrate_hf_cache.sh`、`link_hf_cache.sh`）。下载临时文件放系统盘 /tmp。两个大 dinov3 模型（huge/large）因历史原因以实体目录留在系统盘，路径照常可用。
+- git 仓库：`git@github.com:Calendula597/fake-image-detection.git`，**每次改动必须 commit+push**；大目录（outputs/weights/artifacts/data_real*/materials/）已在 .gitignore；add 时用具体文件名，别 `git add -A`。
 
-## LB 成绩（复赛，按时间）
+## 三、LB 成绩史（复赛，按时间）
 
-| 日期 | 提交 | 构成 | LB |
+| 日期 | 提交 | LB | 备注 |
 |---|---|---|---|
-| 08-31 | prior378(错测试集) | — | 0.501237 |
-| 08-31 | stack_base(11成员) | 冻结堆叠 | 0.891552 |
-| 08-31 | blend_v2(base+ft+自训练) | 融合 | 0.889155 |
-| 09-01 | stack_base19(+dinov3) | 冻结堆叠 | 0.902021 |
-| 09-01 | stack_base21(+CO-SPY) | 冻结堆叠 | 0.902824 |
-| 09-01 | ft_ens2(微调集成) | 端到端微调 | 0.846965 |
-| 09-01 | stack_base27(+Qwen/FSD/AIDE) | 冻结堆叠 | **0.910985** ← 当前最好 |
-| 09-01 | stack_deg(退化匹配) | 退化匹配训练 | 0.910284 |
-| 09-01 | stack_base29_rank(+bfree) | 冻结堆叠 | 0.905813 |
+| 08-31 | prior378（错测试集） | 0.501237 | 原项目特征基于初赛集，教训：全部特征须在 sem_image 重提取 |
+| 08-31 | stack_base(11成员) | 0.891552 | |
+| 08-31 | blend_v2（自训练） | 0.889155 | 伪标签在对抗集"自信地错" |
+| 09-01 | stack_base19(+dinov3) | 0.902021 | 加新算法族有效 |
+| 09-01 | stack_base21(+CO-SPY) | 0.902824 | 加同类特征封顶 |
+| 09-01 | ft_ens2（端到端微调） | 0.846965 | 微调过拟合，证伪 |
+| 09-01 | stack_base27(+Qwen/FSD/AIDE) | 0.910985 | |
+| 09-02 | stack_deg（退化匹配） | 0.910284 | NTIRE 结论不迁移 |
+| 09-02 | stack_base29_rank(+bfree) | 0.905813 | B-Free 被 SD v1-4 单一来源封顶 |
+| 09-03 | stack_base32(+sizeprior+SRM) | 0.912225 | 尺寸先验+残差取证有效 |
+| 09-03 | stack_aug9（多生成器扩增） | 0.914094 | 扩增路线成立 |
+| 09-04 | stack_r1ps（初赛软标签20k） | 0.908262 | 软标签方向证伪（两剂量均负） |
+| 09-04 | blend_aug9_base32 | 0.91385 | 融合稀释 |
+| 09-04 | **stack_aug13h1（aug9+混元）** | **0.916647** | **当前最好。混元（腾讯系）扩增是获胜单机制** |
+| 09-04 | stack_aug10t1（混元+TTA） | 0.916478 | TTA 无增益 |
+| 09-05 | stack_aug14h（混元×3） | 0.916228 | 混元轴见顶于 500 张 |
+| 09-05 | stack_aug12t（稳态化全包） | 0.913184 | 种子平均+TTA 无增益 |
+| 09-05 | stack_aug15k(+Kolors) | 0.91429 | 代理覆盖饱和 |
+| 09-05 | blend_13h1_10t1 | 0.916623 | 持平 |
+| 09-07 | stack_aug17d（多轮退化全包） | 0.912255 | **多轮假设部分证伪：重度退化训练有害** |
+| 09-07 | stack_aug18x（鲁棒成员版） | 0.915349 | 仍低于 aug13h1，但 > aug17d |
+| 待测 | **stack_aug19c（CoReBench 商业模型入池）** | — | **下一个首选** |
 
-## 09-02 新增候选（未上 LB）
+## 四、当前最好与候选队列
 
-- **`stack_base31_sem.csv`（首选）** — 30 成员 + `sizeprior`（尺寸先验分层回退版：精确尺寸→q8→宽高比×面积档×mult8桶；LOO OOF 0.809，测试集 81% 精确尺寸覆盖）
-- `stack_base30_sem.csv` — sizeprior 初版（未见尺寸回退 0.5），已被 base31 取代
-- `blend27_degrank_sem.csv` — 0.6×base27 + 0.4×deg_rank 的 rank 融合
-- `stack_base28_sem.csv` — 只 +DIFT 的对照
+- **最好**：`outputs/submissions/stack_aug13h1_sem.csv` = **0.916647**
+- **下一批建议顺序**：① `stack_aug19c_sem.csv`（aug13h1 配方 + 12 个 CoReBench 商业模型入池）② `stack_aug13h1_sem.csv`（保底复测）③ 视 ① 结果定（CoDE 评估 / 新机制）
+- 提交前问我，我按当日候选期望值重新排序，避免重复提交浪费名额。
 
-## 09-02 尺寸先验发现（重要新信号）
+## 五、核心管线（可复现命令）
 
-- 训练集 尺寸→AI率 强相关：512²=0.96、1024²=0.85、256×144=1.00（AI）；1024×683=0.02、341×512=0.00（真实相机尺寸）
-- LOO 尺寸查表单特征 OOF AUC=**0.8127**，强于整个 meta 成员（0.70），与 meta 相关性仅 0.45
-- 测试集 81% 图片尺寸在训练表中；未见尺寸用分层回退
-- 量化表指纹查表已证伪（AUC 0.41，赛方统一重编码，只有 14 种表）
+```bash
+source .venv/bin/activate && export HF_ENDPOINT=https://hf-mirror.com
 
-## 09-02 赛事情报（subagent 调研确认）
+# 主堆叠（35 成员：CF/CLIP/DINOv3/CO-SPY/FSD/AIDE/DIFT/Qwen/bfree/DRCT/meta/sizeprior/npr/srm + 4个fluxaug扩增头）
+python stack.py                    # 环境变量：FLUXAUG_SEEDS=n、MLP_SEEDS=n、NO_TTA=1、EXCLUDE_PLAIN_STRONG=1
 
-- 比赛 = **第五届琶洲算法大赛"湾区杯"AI生成内容鉴别挑战赛**，task2 图片检测，出题方 = **腾讯朱雀实验室**。复赛进行中，无公开题解。
-- 官方说明测试集覆盖"扩散模型、GAN、**流匹配**"等主流架构 + 压缩/裁剪/滤镜/社交平台转发对抗。
-- 复赛假图大概率含商业生成器：MJ/SD/DALL·E/FLUX + 国产（**混元、即梦/Seedream、可灵/Kling、Qwen-Image/万相**，腾讯系可能偏多）。
-- NTIRE 2026 报告（arXiv:2604.11487）是最近似参考：real 来自 CC12M/CommonPool/RedCaps，fake 用 VLM caption→LLM 改写 prompt 配对生成，**对齐分辨率/宽高比/JPEG 质量分布**，测试保留更新生成器（Qwen-Image/HiDream/Nano Banana 等）。
-- 未试过的高价值方向（按优先级）：
-  1. **商业 API 生成数据**（Seedream/Kling/混元/Nano Banana）— 需 API key，问用户
-  2. **本地跑 FLUX.1-schnell（流匹配，官方点名）生成新假图**：扩增训练池 + 建更准的自建测试集 ← 当前进行中（GGUF Q8 下载）
-  3. **DDA 数据对齐**（NeurIPS'25 腾讯优图，github.com/roy-ch/Dual-Data-Alignment）：VAE 重建真实图成内容匹配假图 + 重加 JPEG 压缩对齐频谱 + mixup（与 B-Free 不同在 JPEG 对齐）
-  4. 成对干净/退化训练（TeleAI LPT）+ 赛事匹配的退化（**moiré、color cast、speckle noise**）
-  5. SRM/Bayar 高通残差分支（RAPID）— 与 NPR 不同的取证线索，便宜可加
-  6. logit 空间门控级联融合（INTSIG）— 推理期技巧
-- ⚠️ 朱雀检测器本身公开可用，可作为特征，但它是出题方产品，涉嫌违反诚信参赛，**不要用**除非用户明确批准
+# 生成提交（9 个近重复标签覆盖）
+python submit.py --predictions outputs/predictions/ensemble_stack_only.csv \
+  --override-csv artifacts/label_override_sem.csv --out outputs/submissions/XXX.csv
+python validate_submission.py --submission outputs/submissions/XXX.csv
+```
 
-## 当前最好提交文件（明天用）
+扩增数据管线：
+- `generate_flux.py`（FLUX.1-schnell GGUF Q8，COCO caption，已产 600 张入池；**权重已删**，需要时按脚本头部说明重下 ~16GB）
+- `generate_hydit.py`（HunyuanDiT-v1.2，已产 1500 张，40% 中文 prompt；权重已删）
+- `generate_kolors.py`（Kolors，已产 500 张；权重已删）
+- `generate_deg2.py`（多轮退化变体，aug17d 用，现不推荐使用）
+- `extract_aug.py`（扩增池特征，--all-genimage / --deg / --deg2；**holdout_* 目录永不入池**）
+- `extract_flip.py`（TTA 翻转测试特征）、`extract_srm.py`（SRM 残差）、`extract_dinomac.py`（DINO-MAC 特征，边际）
+- `scripts/fetch_corebench.sh`（CoReBench tar.gz 队列下载+抽 400 张；corebench 目录已扁平化、嵌套 PNG 已删）
+- `eval_selftest.py`（COCO 真实 vs 各生成器假的骨干评估；**评估脚本必须传绝对路径**——`ImageDataset` 对打不开的图静默回退黑图，曾造成"FLUX 致盲"误判）
 
-- **首选 `outputs/submissions/stack_deg_sem.csv`** — 退化匹配训练版（28 成员，强骨干测试头用干净+退化训练）。**用于检验 NTIRE 退化匹配结论**。未提交过。
-- **对照 `outputs/submissions/stack_deg_rank_sem.csv`** — 同上但 L1-rank 堆叠（无干净训练的 L2）。
-- 备选：`stack_base28_sem.csv`（+DIFT 扩散侧）、`stack_base27_sem.csv`（LB 实测 0.910985）。
+## 六、关键认知（重要，别再重复踩坑）
 
-## 已证伪/确认的方向（重要教训，别再重复）
+### 已验证有效（按 LB 贡献排序）
+1. **多生成器扩增池**（11→19→27→35 成员演进中的最大单机制）：fluxaug_* 头 = [1000 训练图 + COCO/ImageNet 真 + 13+12 个生成器假 + 温和退化变体] 训练 Muon-MLP。**混元（腾讯系）是最有效的单个生成器**（+0.0026）
+2. **尺寸先验 sizeprior**（生成器原生尺寸 512²/1024² 偏 AI，LOO 查表 OOF 0.81，测试集 81% 覆盖）
+3. **SRM/Bayar 残差**（弱 0.66 但零相关，多样性好）
+4. **L2 堆叠 > L1-rank 融合 > 手工 rank 融合**（融合两个强提交会稀释）
+5. **冻结骨干：CF384、clipH378 最强**（OOF 0.96/0.9688）；MLP 头 > LR 头（跨生成器）
 
-- ⭐ **退化匹配训练（最重要突破，待 LB 验证）**：NTIRE 2026 调研发现 OOF→LB 鸿沟的根因是"**干净特征训练 vs 退化测试**"。修复 = 对训练图施加与测试类似的退化（JPEG/缩放/模糊/噪声），重新提取特征，**让堆叠头在 [干净+退化] 特征上训练**。已实现：`extract_degraded.py` 提取退化特征（CF384/CF224/clipH/clipBigG/clipH378/dinoL/dinoB），`stack.py` 的 `_fit_mlp_deg` 让强成员测试头用干净+退化训练。**候选：`stack_deg_sem.csv`(L2) / `stack_deg_rank_sem.csv`(L1-rank)**。**我此前"微调证伪"结论可能错了——不是微调不行，是训练数据/增强没对齐对抗分布。**
-- ❌ **端到端微调（finetune）**：ft_ens2 LB 0.846 < 冻结 0.902。但注意：NTIRE 前两名都是微调大 backbone 且成功，区别在退化增强对齐。微调 checkpoint 已删。
-- ❌ **dinov3-H+（最大版）**：OOF 0.9393，仍弱于 clipH378（0.9688），边际递减。
-- ❌ **RIGID/WePe/WaRPAD（扰动一致性信号）**：都 ~0.58-0.61，此数据集无效。
-- ❌ **近重复标签覆盖**：只有 9 个可靠，且高相似样本 stack 本来就分对，覆盖价值小。
-- ✅ **CLIP(clipH378) 是最强冻结骨干**（0.9688），比所有 dinov3 强。
-- ✅ **"加新算法族"有效，"加同类特征"封顶**：11→19(加dinov3新族)+0.0105，19→21(加CO-SPY)只+0.0008，21→27(加Qwen/FSD/AIDE)+0.0082。
-- ✅ **Qwen VLM 是最有效的非视觉新机制**（OOF 0.76，但 LB 证明有效）。**VLM 侧已探明：Qwen-0.8B 就是最优，专业取证 VLM（SIDA-7B 0.74、AntifakePrompt 拿不到、其它太大）都更差或不可行，别再试 VLM 了**。
-- ⚠️ **SOTA 论文方法在此对抗集上都变弱**：FSD(0.777)、AIDE(0.652)、NPR(0.68)、cospyArt(0.69)，都不如 CF/CLIP。论文在其它 benchmark 的 0.96 不迁移。**OOF 不预测 LB，一切以 LB 实测为准**。
-- ⚠️ **扩散侧"重建/噪声"路线弱**（SD 在 LAION 训练，真实图也在分布内）：单步噪声误差~0.50、cospyArt(VAE)0.69。**DIFT(SD UNet 特征)=0.7442 是扩散侧最好信号**（把扩散模型当 backbone）。已入 28 成员堆叠，待 LB 检验。
+### 已证伪/封顶（别再试）
+- 端到端微调（0.846）、自训练/伪标签（对抗集+初赛软标签均负）、B-Free（SD 单一来源封顶）、退化匹配训练、**重度多轮退化训练（deg2/deg3/deg4，LB -0.004~-0.001，比赛退化没有模拟的那么重）**
+- 种子平均（-0.0007）、TTA 翻转（+0）、L1-rank、SAFE checkpoint（自测 0.26-0.59）、RPTC/PatchCraft（0.63-0.98 太弱）、DINO-MAC（0.9129 < 原 dinoL 0.9204）、取证 VLM（SIDA-7B < Qwen）、RIGID/WePe/一致性信号（~0.58）、纯 FFT（~0.60）、dinov3-H+（< clipH378）
+- 混元 1500 张 ≈ 500 张（见顶）；Kolors 无增益（代理饱和）
 
-## 当前 pipeline（已验证正确）
+### 侦查结论（09-07 定型）
+- **30 个生成器家族全部本地 0.95+**（含 Seedream-3、HunyuanImage-3.0、GPT-Image、Nano Banana、imagen-4、FLUX.1/2-dev、SD3.5L、Qwen-Image、MJ v5/v5.1、wukong、ADM、glide、BigGAN、VQDM 等）——**盲区不在生成器身份**
+- 比赛训练集真假内容相似度 cos>0.8 仅 1 对 → 非内容匹配构造
+- 已证实的小损失机制：真实侧误判（ImageNet 真实图 13-15% FP）、内容依赖型头部（clipH378 在 img2img 上 0.80，cf384 型不受影响）、多轮退化（仅对 1000 张训练的主成员有崩坏，fluxaug 头天然鲁棒 0.9989）
+- 唯一无法验证的：MJ v7 / Firefly v4 / Seedream-4（21.5GB 超磁盘）本地不可得；比赛真实图的具体来源分布
 
-代码 `/root/autodl-tmp/fake-image-detection/`，GitHub `git@github.com:Calendula597/fake-image-detection.git`。
+## 七、扩增池清单（data_real/，label=1 除标注外）
 
-- **特征**（26 个 .npy，在 sem_image 上提取）：CF(cf384/cf224)、CLIP(clipH/bigG/H378/L)、DINOv3(B/L/H)、DRCT、CO-SPY(SigLIP+VAE)、NPR、FSD、AIDE、meta指纹
-- **堆叠** `stack.py`：CF/CLIP/DINO/CO-SPY/FSD/AIDE 用 MLP 头，DRCT/meta/NPR 用 LR/ExtraTrees；L1 单特征→L2 元学习器→rank 加权
-- **标签覆盖**：`artifacts/label_override_sem.csv`（9 个）
-- **提交**：`python submit.py --predictions X --override-csv artifacts/label_override_sem.csv`，`validate_submission.py` 校验
-- 环境：`source .venv/bin/activate`，GPU=RTX4090，权重软链接 `weights -> Detector/image/weights`
+- 真实侧（label=0）：`coco_val`(600)、`imagenet_real`(400)
+- 开源生成器：`coco_val_ai_sd14`(600)、`coco_val_ai_flux`(600)、`sdxl_10k`(500)、`hydit`(1500)、`kolors`(500)、`genimage_{midjourney,wukong,glide,biggan,adm,vqdm}`(各500)、`journeydb`(300)
+- CoReBench 商业/新模型（各 400，扁平 jpg）：`corebench_{Seedream_3,Nano_Banana,imagen_4,HunyuanImage_3_0,GPT_Image_1_5,FLUX_1_dev,FLUX_2_dev,FLUX_1_Krea_dev,SD_3_5_Large,HiDream_I1,Z_Image,Qwen_Image(69),LongCat_Image}`
+- 退化变体：`data_real_deg/`（单轮温和，aug13h1 配方）、`data_real_deg2/`（多轮，已证伪不推荐）
+- 验证集（永不入池）：`data_val/`（cm_multideg 多轮退化测试集等）、`data_real/holdout_{midjourney,adm}`、`low_conf_1000/`（模型最拿不准的 1000 张测试图+清单）
 
-## 各特征提取脚本
+## 八、未完成的候选方向（按优先级）
 
-`extract_features.py`(CF/CLIP)、`extract_dino.py`(dinov3)、`extract_drct.py`、`extract_cospy.py`、`extract_npr.py`、`extract_fsd.py`、`extract_aide.py`、`recompute_metadata.py`(meta指纹)、`recompute_override.py`(近重复)。`external/` 下有 co-spy/npr/fsd/aide/rine 仓库。
+1. **提交 stack_aug19c**（已生成、校验通过）
+2. **CoDE 评估**（aimagelab/CoDE，HF 非 gated，DINOv2+对比对齐，sklearn 头在 9.2M 图 D³ 上训练，<2h）
+3. sidbench 剩余检测器快测（NPR/GramNet/FreqDetect，`/tmp/sidbench` + dkarageo/sidbench；RPTC 已证伪）
+4. A*STAR 2026.01 思路自实现：真实图过生成器末端组件（VAE 解码器等）造假图微调 DINOv3（约 1 天）
+5. 真实侧继续扩（Unsplash/LAION 下载曾失败，可用 bhargavsdesai/laion_improved_aesthetics 重试）
+6. TeleGuard 式成对干净/退化特征对齐损失（NTIRE 季军，~3h）
 
-## 磁盘
+## 九、恢复检查单
 
-曾到 92%，清理废弃微调 checkpoint 后到 80%（~10G 空闲）。dinov3-7B(28G) 不可行。
-**别再下载超大模型**。要删可删：DRCT 权重(2.3G,特征弱)。
-
-## 明天方向（诚实评估）
-
-纯堆特征已接近上限（~0.90-0.91）。0.99 在此对抗集用现有公开方法大概率不可达。可试：
-1. **先提交 stack_base27**（OOF 最高 0.992084，Qwen 是不同机制，可能小幅提升到 ~0.905-0.91）
-2. Qwen VLM（语义推理）是唯一在本数据集上给堆叠带来 OOF 提升的新机制（+0.001），可考虑更强 VLM 或更好 prompt
-3. 若还要涨，只能找机制更独特的信号（频域/谱域），但收益预期递减
-4. 理性目标 ~0.91-0.92，0.99 大概率不可达
-
-## 09-03 重要更正：FLUX 致盲是假象（评估 bug）
-
-- 09-02 晚报告"CF384/clipH378 对 FLUX AUC≈0.5 致盲"是**错的**：我的临时评估脚本给 `ImageDataset` 传相对路径，它对打不开的图片**静默回退黑图**（feature_extractor.py:38-39），评估的全是空白图。
-- 干净评估（eval_selftest.py，绝对路径）：CF384 对 FLUX=**0.9987**、SD14=1.0000；clipH378 对 FLUX=0.8275、SD14=0.7954。**骨干对开源新生代检测良好**。
-- 策略修正：LB 0.91 的差距大概率来自**商业闭源生成器**（Midjourney/Seedream/混元/DALL·E），本地无法生成 → **商业 API 数据是唯一未证伪的大杠杆**（等用户答复 API 渠道）。
-- 教训：任何"异常低"的评估结果先检查输入是否被静默替换；`ImageDataset` 的静默黑图回退是个坑。
-
-## 09-03 生成器难度地图（比赛训练头，COCO 为真）
-
-| 生成器 | CF384 | clipH378 |
-|---|---|---|
-| ADM (guided-diffusion) | **0.635** | 0.868 |
-| Midjourney (GenImage v5) | **0.861** | 0.978 |
-| glide | 0.933 | 0.958 |
-| FLUX schnell | 0.962 | 0.952 |
-| BigGAN | 0.968 | 0.995 |
-| wukong | 0.995 | 0.994 |
-| SD1.4 img2img | 0.995 | 0.801 |
-
-- **ADM 和 Midjourney 是 CF384 的最弱切片**（mean_p=0.20/0.57，被判为真）；wukong/BigGAN 已基本解决。
-- 候选 `stack_aug1_sem.csv`：33 成员，新增 fluxaug_cf384/clipH378（3899 张多生成器 aug 训练头，OOF 0.9425/0.9497）。
-- 数据：`data_real/genimage_{midjourney,wukong,glide,biggan,adm}` 各 500（bitmind/GenImage_*），`coco_val_ai_flux`（本地 FLUX schnell 生成中）。
-
-## 09-03 留出集验证（aug 机制实证有效）
-
-- 留出集 = GenImage streaming skip 前 500 后的新图（MJ/ADM 各 300，未参与训练）
-- cf384: MJ 0.9847→**0.9980**, ADM 0.8442→**0.9974**；clipH378: MJ 0.9537→**0.9999**, ADM 0.8475→**1.0000**
-- 结论：多生成器 aug 头确实补上了已证实的盲区，stack_aug2 值得优先提交。剩余风险仅在于比赛测试集的生成器构成。
-- 另：MLP 头（归一化）比 LR 头（原始特征）跨生成器泛化显著更好（ADM 无 aug：MLP 0.844 vs LR 0.635）。
-
-## 09-03 退化扩增（aug3）与验证
-
-- 退化变体：`data_real_deg/`（JPEG q30-75 + 0.4-0.75 下采上采 + 30% 高斯模糊），训练池每个 split 一份；`extract_aug.py --deg` 提特征；**holdout_* 目录已排除出训练**（--all-genimage 和 --deg 都排除）
-- 退化留出集验证（图未参与训练）：cf384 退化MJ 0.9799→**0.9941**、退化ADM 0.9305→**0.9970**；clipH378 0.9880→**1.0000**、0.9758→**0.9998**
-- 候选 `stack_aug3_sem.csv`：35 成员，aug 头训练样本 7867+（含退化）。**优先于 aug2**
-- 事故记录：两次特征提取抢显存把 FLUX 生成挤到 OOM；FLUX 生成需要独占 ~13GB，并发 GPU 任务务必 bs 小或串行
-- 预测对比：aug3 vs base32 相关性 0.992，均值差 ~0，约 16% 样本分数变动 >0.05（上下对称）——aug 头是"修正"而非"偏移"。
-- VQDM 是 clipH378 的盲区（无 aug 0.7714），aug 头修复到 0.9997；cf384 本来就 0.995。难度地图已覆盖 9 个生成器，主要盲区（ADM/MJ/VQDM）全部由 aug 头补齐到 0.99+。
-
-## 09-03 Muon 优化器结论（用户建议方向，已闭环）
-
-- **多生成器扩增头（8500 混合样本）：Muon > AdamW**（OOF cf384 0.9349→0.9613，留出 MJ/ADM →1.0000）
-- **原成员头（1000 单分布样本）：Muon < AdamW**（clipH378 0.9688→0.9407）——正交化更新在小数据单分布下欠拟合
-- 结论：Muon 仅用于 fluxaug_* 头（已实现 `_train_mlp_muon`，单卡版），原成员保持 AdamW。候选 `stack_aug6_sem.csv`。
-- SDXL（ash12321/sdxl-generated-10k）：无 aug 已 0.9997/0.9920，非盲区；仍入池（aug8，10100 样本）。**开源生成器覆盖已饱和，剩余未知只在商业 API 生成器。**
-- JourneyDB（MJ v5.1+）：无 aug 已 0.9928/0.9940，有 aug 1.0000——MJ 家族被 GenImage-MJ 扩增完全覆盖。**所有本地可得的生成器家族（10 个）均已验证 0.99+；剩余未知仅在商业 API 生成器（Seedream/Kling/混元/Nano Banana/DALL·E3）和比赛对抗管线。**
-
-## 09-03 LB 第三批结果与 r1ps 软标签
-
-- LB: stack_base32=**0.912225**（sizeprior+SRM 有效）、stack_aug7_l1rank=0.905436（L1-rank 再次确认不如 L2）、**stack_aug9=0.914094 新纪录**（+0.0031，多生成器扩增在真实测试集验证成立）
-- 用户建议的初赛软标签已实现：2 万初赛测试集 + prior378 预测作软标签（r1ps 部件，id 已验证对齐），fluxaug 头训练样本 30700
-- 候选 `stack_r1ps_sem.csv`：L2-blend OOF 0.993088（注意软标签来自在同 1000 张上训练的 prior378，OOF 略虚高）
-
-## 09-04 LB 第四批 + 软标签方向盖棺
-
-- LB: stack_r1ps=0.908262（-0.006，软标签伤害）、blend_aug9_base32=0.91385（-0.0002，融合稀释）。**aug9=0.914094 仍是单工件最强**
-- `first/image_submission_example.csv` 与 prior378 预测逐行一致（无数据错误）
-- 软标签方向盖棺：20k 和 3k 剂量都有害（r1ps3k 把头 OOF 拖低 0.03），已移出池（.bak）
-- 候选 `stack_aug9p_sem.csv`：纯净 aug9 + 5 种子平均 Muon 头（FLUXAUG_SEEDS=5 环境变量控制），头部训练方差已消除
-
-## 09-04 稳态化链 + HunyuanDiT
-
-- 消融链候选（每级一个机制）：`stack_aug9p`（aug9+扩增头5种子）→ `stack_aug10t`（+扩增头TTA）→ `stack_aug11s`（+全成员5种子，MLP_SEEDS 环境变量）→ `stack_aug12t`（+主成员TTA，extract_flip.py）。建议提交顺序 aug9p → aug12t → aug10t
-- **规律确认：所有开源生成器（SD/SDXL/FLUX/ADM/glide/BigGAN/VQDM/wukong/MJ/HunyuanDiT）伪影都可被堆叠检测（无 aug 也 0.99+），未知仅在商业闭源模型**
-- FLUX 权重已删（600 张已入池），换 HunyuanDiT-v1.2（腾讯开源，朱雀出题方的最近代理，17s/张 offload）生成 500 张中；早期评估 cf384=1.0/clipH378=0.9976，非盲区
-- 待办：hydit 满 500 → deg 变体 + 提特征 → `stack_aug13h` 候选
-
-## 09-04 LB 第五批：混元是获胜轴
-
-- **stack_aug13h1=0.916647 新纪录**（aug9+混元，干净隔离，+0.0026）；stack_aug10t1=0.916478（混元+TTA，TTA 无增益）；stack_aug9p=0.913397（种子平均无增益）
-- 机制归因：HunyuanDiT（腾讯开源）扩增覆盖腾讯朱雀出题的测试集，是目前最强单机制。**下一步：扩大混元数据量（+1000，含中文 prompt），aug14h**
-- 已否决：种子平均（-0.0007）、TTA（+0）、软标签（两剂量均负）、L1-rank、融合稀释
-
-## 09-05 LB 第六批
-
-- stack_aug14h=0.916228 < aug13h1=0.916647：**混元轴见顶于 500 张**（1500+中文 prompt 无增益）
-- 当前最好：**stack_aug13h1_sem.csv = 0.916647**
-- 明日方向：① Kolors（快手可灵系代理）② blend(aug13h1, aug10t1) ③ 新机制
-
-## 09-06 顶会调研与执行（plateau 0.9166 后）
-
-- LB: aug12t=0.913184、aug15k=0.91429、blend=0.916623——**平台期确认，最好仍 aug13h1=0.916647**
-- 调研结论：领域已收敛到我们的范式（DINOv3+多生成器数据+退化模拟+集成），无范式遗漏
-- ❌ SAFE checkpoint（KDD2025）：自测 0.26-0.59，证伪
-- ⚠️ DINO-MAC（CVPRW2026 冠军头）：MAC 特征 OOF 0.9129 < 原 dinoL 0.9204，收益存疑；dinomacL 特征已提取备用（extract_dinomac.py）
-- 🔥 **关键发现：T2I-CoReBench-Images（lioooox，非 gated）含 40 个最新生成器各 4320 张，包括 Seedream3/4/4.5、Nano Banana、GPT-Image、imagen-4、HunyuanImage-3.0、Qwen-Image 等商业闭源模型**——商业数据的免费替代。hf-mirror 大文件慢 → aria2c -x8 恢复 8MB/s
-- 进行中：scripts/fetch_corebench.sh 队列下载 10 个模型（Seedream-3/Nano-Banana/imagen-4/HunyuanImage-3.0/GPT-Image-1.5/Z-Image/LongCat/HiDream/SD3.5L/Qwen-Image），每个抽 400 张
-- 磁盘注意：/dev/md0 实为 50G（非 70G），大压缩包（Seedream-4 21.5G）放不下；临时文件用系统盘 /tmp
-
-## 09-07 CoReBench 商业模型难度地图（假设推翻）
-
-- 比赛训练头（无 aug）对 CoReBench 商业模型全部 0.98+：Seedream-3 0.996/0.998、HunyuanImage-3.0 0.999、GPT-Image-1.5 0.994/0.998、Nano-Banana 0.983/0.996、imagen-4 0.984/0.997、Z-Image 0.983/0.998（cf384/clipH378）
-- **"商业生成器是盲区"假设被推翻**——连 Seedream/混元3.0/GPT-Image 都能检出
-- 新焦点：2026.02 基准（arXiv:2602.07814）指出 **FLUX.1-dev / Firefly v4 / MJ v7 击败几乎所有公开检测器（18-30% acc）**。我们只测过 FLUX-schnell（4步蒸馏），dev 系（50步引导）完全不同。CoReBench 有 FLUX.1-dev/FLUX.2-dev/FLUX.1-Krea-dev，下载中
-- 若 FLUX-dev 也是 0.98+，则剩余解释只有：① 真实侧分布偏移（比赛真实图被判 AI，COCO 自测覆盖不到这个失败模式）② 比赛对抗退化强度远超我们的 deg 模拟 ③ MJ v7/Firefly/Seedream-4（未测）
-- **真实侧发现**：ImageNet 真实图被比赛头误判率 13-15%（mean_p 0.175 vs COCO 0.05）——若复赛真实图比训练集多样，这是 AUC 损失来源之一。已加 imagenet_real(400)+deg 为 label-0 扩增（stack.py 的 real 判定改为 'coco'|'real'），候选 `stack_aug16r_sem.csv`
-- FLUX.1-dev（基准研究点名"击败所有公开检测器"）：cf384 0.9920 / clipH378 0.9985——**对比赛头也不是盲区**。至此 16+ 生成器家族（含全部商业模型）本地全 0.98+，LB 0.9166 的差距只能来自：① 真实侧误判（已证实存在，aug16r 修复中）② **内容匹配**：clipH378 在 SD1.4-img2img（内容保持）上只有 0.80——若比赛真假图内容相近（NTIRE 式配对），自测的 0.98+ 全是虚高（内容差异送了免费信号）③ 多轮转发退化强于单轮模拟
-- FLUX.2-dev 0.973/0.993、FLUX.1-Krea-dev 0.958/0.995——最新 FLUX 变体也大体可检。**假侧检测在本地已全面解决，差距聚焦：真实侧 FP（已证实）+ 内容匹配（img2img 0.80 的证据）+ 多轮退化**
-
-## 09-07 平台期真凶：多轮转发退化
-
-- 训练集真假内容相似度：cos>0.8 仅 1 对——非内容匹配构造
-- 低强度 img2img：cf384 0.999 稳、clipH378 0.79-0.81
-- 🔥 **多轮退化（2-3 轮 缩放+JPEG q25-65 重编码）：cf384 0.7812、clipH378 0.7567 同时崩盘**——比赛"社交平台多层转发"的真实强度，单轮 deg 模拟完全没覆盖
-- 修复：deg2 多轮退化池 → aug17d
-- 磁盘：SD1.4(16G) 留在系统盘（数据盘放不下），缓存软链布局不变
-- 多轮退化干净 A/B（cm_* 已移出池到 data_val/）：fluxaug 头无 deg2=0.9666/0.9999、有 deg2=**0.9989/1.0000**；主成员头（1000 张+deg0-4）仍 0.74-0.76——**多轮鲁棒性来自生成器多样性而非退化特征复制**。之前一次 1.0000 验证有泄漏（cm_multideg 误入池），已修正
-- HiDream-I1: 0.9823/0.9984，非盲区
-- SD3.5-Large 0.989/0.996、Qwen-Image 0.979/0.995（n=69）——难度地图补全至 14 个 CoReBench 模型 + 16 个其它家族，全部 0.95+。LongCat 下载失败放弃（同类）
-
-## 09-07 LB 第七批：多轮假设部分证伪
-
-- stack_aug18x=0.915349、stack_aug17d=0.912255 均 < aug13h1=0.916647——**重度退化训练（deg2/deg3/deg4/鲁棒剔除）在实际测试集上有害**，比赛退化强度 < 2-3 轮 q25-65 模拟
-- 相对排序：aug18x > aug17d 说明适度向鲁棒靠拢仍有价值，但 aug13h1 的"混元+温和退化"配方仍最优
-- 下一步：① aug19c = aug13h1 配方 + 12 个 CoReBench 商业模型入池（温和退化）② 二轮顶会调研（HF/ModelScope 可下载检测器）
-- RPTC/PatchCraft（sidbench，CVPR'24 频域补丁 CNN，零样本）：COCO 自测 0.63-0.98（商业模型 0.86-0.98，hydit 0.63），显著弱于现有堆叠——**不入池**（弱成员稀释 L2）
-- sidbench（dkarageo，HF 非 gated）是 20+ 预训练检测器仓库，已验证可达
-- 二轮调研其他候选：CoDE（DINOv2+sklearn，D³ 9.2M 训练）待试；Ivy-Fake（Qwen2.5-VL-3B 微调）存疑；RAID checkpoints 太大；RINE 是 CLIP 探针变体（边际）
+1. `cd /root/autodl-tmp && kimi --continue` → `/goal resume`
+2. 确认磁盘：`df -h / /root/autodl-tmp`（系统盘 >3G、数据盘 >5G 空闲才安全）
+3. 跑 stack 前：`source .venv/bin/activate && export HF_ENDPOINT=https://hf-mirror.com`
+4. 当日提交前问我排序；提交后把分数告诉我（格式：`文件名:分数`）
