@@ -202,3 +202,4 @@
 - 新焦点：2026.02 基准（arXiv:2602.07814）指出 **FLUX.1-dev / Firefly v4 / MJ v7 击败几乎所有公开检测器（18-30% acc）**。我们只测过 FLUX-schnell（4步蒸馏），dev 系（50步引导）完全不同。CoReBench 有 FLUX.1-dev/FLUX.2-dev/FLUX.1-Krea-dev，下载中
 - 若 FLUX-dev 也是 0.98+，则剩余解释只有：① 真实侧分布偏移（比赛真实图被判 AI，COCO 自测覆盖不到这个失败模式）② 比赛对抗退化强度远超我们的 deg 模拟 ③ MJ v7/Firefly/Seedream-4（未测）
 - **真实侧发现**：ImageNet 真实图被比赛头误判率 13-15%（mean_p 0.175 vs COCO 0.05）——若复赛真实图比训练集多样，这是 AUC 损失来源之一。已加 imagenet_real(400)+deg 为 label-0 扩增（stack.py 的 real 判定改为 'coco'|'real'），候选 `stack_aug16r_sem.csv`
+- FLUX.1-dev（基准研究点名"击败所有公开检测器"）：cf384 0.9920 / clipH378 0.9985——**对比赛头也不是盲区**。至此 16+ 生成器家族（含全部商业模型）本地全 0.98+，LB 0.9166 的差距只能来自：① 真实侧误判（已证实存在，aug16r 修复中）② **内容匹配**：clipH378 在 SD1.4-img2img（内容保持）上只有 0.80——若比赛真假图内容相近（NTIRE 式配对），自测的 0.98+ 全是虚高（内容差异送了免费信号）③ 多轮转发退化强于单轮模拟
