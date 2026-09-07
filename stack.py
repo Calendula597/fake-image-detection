@@ -37,7 +37,7 @@ def load_csv(path: Path):
     return d.set_index("id")["score"]
 
 
-def _deg_paths(tag, size, crop, n_max=3):
+def _deg_paths(tag, size, crop, n_max=5):
     """查找某成员的退化训练特征文件（deg0/deg1/...）。"""
     paths = []
     for r in range(n_max):

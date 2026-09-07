@@ -77,6 +77,7 @@ def main():
                     help="处理 data_real/genimage_* 全部目录 + coco + flux")
     ap.add_argument("--bs", type=int, default=32)
     ap.add_argument("--deg", action="store_true", help="处理 data_real_deg/ 退化变体")
+    ap.add_argument("--deg2", action="store_true", help="处理 data_real_deg2/ 多轮退化变体")
     args = ap.parse_args()
     device = torch.device("cuda:0")
 
@@ -92,6 +93,12 @@ def main():
             d.name: sorted(d.glob("*.jpg"))
             for d in sorted((CR / "data_real_deg").glob("*"))
             if d.is_dir() and not d.name.startswith("holdout_") and list(d.glob("*.jpg"))
+        }
+    elif args.deg2:
+        splits = {
+            d.name: sorted(d.glob("*.jpg"))
+            for d in sorted((CR / "data_real_deg2").glob("*"))
+            if d.is_dir() and list(d.glob("*.jpg"))
         }
     else:
         splits = {

@@ -81,3 +81,4 @@ stack_aug12t_sem.csv	0.913184	stabilization full package (seeds+TTA): no gain
 stack_aug15k_sem.csv	0.91429	Kolors 500: no gain vs aug13h1 (0.916647) - proxy coverage saturated
 blend_13h1_10t1_sem.csv	0.916623	blend of two best: equals aug13h1, no gain - PLATEAU confirmed at ~0.9166
 stack_aug16r_sem.csv	PENDING	aug13h1 config + real-side aug (imagenet_real 400 + deg, label 0; real dirs matched by 'coco'|'real'); pool 15500; validated
+stack_aug17d_sem.csv	PENDING	FULL PACKAGE: aug16r + deg2 multi-round pool (9000) + main members train on multi-round deg3/deg4 features; fluxaug pool 24500; validated. Targets the confirmed 0.76-0.78 multi-round collapse
