@@ -85,3 +85,4 @@ stack_aug17d_sem.csv	PENDING	FULL PACKAGE: aug16r + deg2 multi-round pool (9000)
 stack_aug18x_sem.csv	PENDING	robust-member variant: EXCLUDE_PLAIN_STRONG=1 drops cf384/clipH378crop/clipBigGcrop/dinoL plain heads (collapse 0.74 on multi-round), keeps fluxaug equivalents; 29 members; validated
 stack_aug18x_sem.csv	0.915349	robust-only variant: -0.0013 vs aug13h1 but > aug17d; heavy-deg mechanisms mildly harmful at comp's actual degradation level
 stack_aug17d_sem.csv	0.912255	full multi-round package: -0.0044 vs aug13h1; multi-round hypothesis PARTIALLY REFUTED (comp degradation milder than 2-3 rounds q25-65)
+stack_aug19c_sem.csv	PENDING	aug13h1 recipe + 12 CoReBench commercial models in pool (28794 samples; heads OOF 0.9441/0.9492/0.9328/0.8838); validated
