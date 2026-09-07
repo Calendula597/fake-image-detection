@@ -71,10 +71,16 @@ def _tta_flip(te, Xs, y, Xt, deg_paths, flip_path):
 
 def build_members(lab_y, test_ids, lab_df=None):
     """从 features/ 构建 Level-1 成员。"""
+    import os
+    # EXCLUDE_PLAIN_STRONG=1：跳过 CF/CLIP/DINO 的普通成员（它们在高强度退化下崩到 0.74），
+    # 只保留 fluxaug 扩增头版（同骨干但多生成器池训练，多轮退化 0.99+）。
+    skip_plain = os.environ.get("EXCLUDE_PLAIN_STRONG") == "1"
     members = []
 
     # Community Forensics
     for tag, size in [("cf384", 384), ("cf224", 224)]:
+        if skip_plain and tag == "cf384":
+            continue
         for crop in ("crop", "resize"):
             pair = (
                 load_features(FEAT, f"commfor_{tag}", size, crop, "sample"),
@@ -94,6 +100,8 @@ def build_members(lab_y, test_ids, lab_df=None):
     for size in (224, 378):
         for crop in ("crop", "resize"):
             for tag in ("clipH", "clipBigG", "clipH378"):
+                if skip_plain and tag in ("clipBigG", "clipH378") and crop == "crop":
+                    continue
                 pair = (
                     load_features(FEAT, tag, size, crop, "sample"),
                     load_features(FEAT, tag, size, crop, "test"),
@@ -110,6 +118,8 @@ def build_members(lab_y, test_ids, lab_df=None):
 
     # DINOv3 (dinoL / dinoB / dinoH)
     for tag in ("dinoL", "dinoB", "dinoH"):
+        if skip_plain and tag == "dinoL":
+            continue
         for crop in ("crop", "resize"):
             pair = (
                 load_features(FEAT, tag, 224, crop, "sample"),
