@@ -59,8 +59,9 @@ def _fit_mlp_deg(Xs, y, Xt, deg_paths):
 
 
 def _tta_flip(te, Xs, y, Xt, deg_paths, flip_path):
-    """水平翻转 TTA：有翻转测试特征时，测试预测取 [原图 + 翻转] 平均。"""
-    if not flip_path.exists():
+    """水平翻转 TTA：有翻转测试特征时，测试预测取 [原图 + 翻转] 平均。NO_TTA=1 禁用。"""
+    import os
+    if os.environ.get("NO_TTA") == "1" or not flip_path.exists():
         return te
     Xt_flip = np.load(flip_path).astype(np.float32)
     assert len(Xt_flip) == len(Xt), f"flip features mismatch: {flip_path}"
@@ -311,7 +312,8 @@ def build_members(lab_y, test_ids, lab_df=None):
             lab_p = FEAT / f"aug_{tag}_{n}_labels.npy"
             if lab_p.exists():  # 软标签（如初赛测试集 r1ps）
                 return np.load(lab_p).astype(np.float32)
-            return np.zeros(len(X), dtype=np.float32) if "coco" in n else np.ones(len(X), dtype=np.float32)
+            real_side = ("coco" in n) or ("real" in n)
+            return np.zeros(len(X), dtype=np.float32) if real_side else np.ones(len(X), dtype=np.float32)
 
         y_aug = np.concatenate([_part_labels(n, X) for n, X in aug_parts])
         gen_names = [n for n, _ in aug_parts]
@@ -337,7 +339,7 @@ def build_members(lab_y, test_ids, lab_df=None):
         Xtn = _norm(Xt)
         te = np.mean([_predict_mlp(h, Xtn, device) for h in heads], axis=0)
         flip_p = FEAT / f"{feat_tag}_{size}_crop_testflip.npy"
-        if flip_p.exists():  # TTA：水平翻转测试特征取平均
+        if os.environ.get("NO_TTA") != "1" and flip_p.exists():  # TTA：水平翻转测试特征取平均
             Xtf = _norm(np.load(flip_p).astype(np.float32))
             te = 0.5 * te + 0.5 * np.mean([_predict_mlp(h, Xtf, device) for h in heads], axis=0)
             print(f"   TTA flip applied for {tag}")
